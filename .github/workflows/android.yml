@@ -26,6 +26,14 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      # 缓存 debug.keystore：否则每次构建都是一个新签名，装的时候会
+      # INSTALL_FAILED_UPDATE_INCOMPATIBLE，必须先卸载旧版（丢数据）
+      - name: Cache debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: scenebox-debug-keystore-v1
+
       - name: Assemble debug
         run: gradle assembleDebug --no-daemon --stacktrace
 

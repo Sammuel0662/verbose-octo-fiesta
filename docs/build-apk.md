@@ -304,3 +304,20 @@ keytool -genkey -v -keystore scenebox.jks -keyalg RSA -keysize 2048 \
 
 如果哪天必须在手机上编，只有一条可行路线：把工程降级成 **Java + 原生 View + 手写 JSON**，
 去掉 Compose 和两个编译器插件。那是为了迁就工具链牺牲架构，**不建议作为主线**。
+
+---
+
+## 已跑通记录（2026-11-18，真机验证）
+
+第一次出包的真实过程，留档避免重复踩：
+
+| # | 现象 | 根因 | 修法 |
+|---|---|---|---|
+| 1 | `refusing to allow a Personal Access Token to create or update workflow` | 经典 PAT 没勾 `workflow` 权限 | 补勾 `workflow`（token 值不变，编辑即可） |
+| 2 | CI：`Cannot access 'static fun newProcess(...)': it is private` | Shizuku **13.1.5 把 `newProcess` 改成了 private**，公开 API 只剩 `getBinder()`，而 `ShizukuRemoteProcess` 构造器是包内可见 | `Shell.kt` 改反射调用，失败自动降级到 AppShell |
+| 3 | 无特权时也显示「dumpsys 可用」，层级误判成 T1 | **dumpsys 无权限时把 `Permission Denial:` 打到 stdout 且 `exit=0`** | 校验首行必须是纯数字（--latency 的刷新周期），否则算失败 |
+| 4 | 第二次装 APK 报 `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | 每次 CI 都是全新 runner，`debug.keystore` 每次重新生成 → 签名不同 | workflow 里缓存 `~/.android/debug.keystore` |
+| 5 | 标题被状态栏压住 | `targetSdk 35` 强制 edge-to-edge | Compose 根布局加 `systemBarsPadding()` |
+
+验证结果：APK 9.3 MB，装上后正确显示 `T0 · 无特权 / 通道 app / 频点上限 3206400 / policy0~7 四组`，
+未授权时明确列出「dumpsys 被拒：Permission Denial」而不是假装可用。
