@@ -44,19 +44,30 @@ object PlazaRepo {
         val items: List<Item>,
     )
 
-    data class Index(val notice: String, val categories: List<Category>, val guides: List<Guide>)
+    data class Index(
+        val version: Int,
+        val notice: String,
+        val categories: List<Category>,
+        val guides: List<Guide>,
+    )
 
     private const val REPO = "Sammuel0662/verbose-octo-fiesta"
+    /** raw 优先：jsDelivr 边缘节点经常缓存旧版，导致 App 拿到没有 patch 的旧索引 */
     private val indexUrls = listOf(
-        "https://cdn.jsdelivr.net/gh/$REPO@main/community/index.json",
         "https://raw.githubusercontent.com/$REPO/main/community/index.json",
+        "https://cdn.jsdelivr.net/gh/$REPO@main/community/index.json",
     )
+
+    /** 低于这个版本的索引没有 patch 字段，视为无效 */
+    private const val MIN_VERSION = 4
 
     fun fetch(): Index {
         var last = "网络不可用"
         for (url in indexUrls) {
             try {
-                return parse(httpGet(url, 15000))
+                val index = parse(httpGet(url, 15000))
+                if (index.version >= MIN_VERSION) return index
+                last = "索引版本过旧(v${index.version})"
             } catch (t: Throwable) {
                 last = t.message ?: t.javaClass.simpleName
             }
@@ -139,6 +150,7 @@ object PlazaRepo {
             ?.map { Guide(str(it, "title"), str(it, "source"), str(it, "url")) }
             ?: emptyList()
 
-        return Index(str(root, "notice"), categories, guides)
+        val version = (root["version"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 0
+        return Index(version, str(root, "notice"), categories, guides)
     }
 }
