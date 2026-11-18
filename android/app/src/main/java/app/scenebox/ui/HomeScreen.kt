@@ -136,12 +136,16 @@ fun HomeScreen(
             }
         }
 
+        Button(
+            onClick = onProbeRoot,
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(if (busy) "检测中…" else "一键检测权限")
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button(onClick = onRequestShizuku, enabled = !busy) {
+            TextButton(onClick = onRequestShizuku, enabled = !busy) {
                 Text("申请 Shizuku")
-            }
-            OutlinedButton(onClick = onProbeRoot, enabled = !busy) {
-                Text("检测 root")
             }
             TextButton(onClick = onRefresh, enabled = !busy) {
                 Text("重新探测")

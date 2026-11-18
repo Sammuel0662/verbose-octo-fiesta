@@ -80,9 +80,41 @@ private fun Root() {
         files = SboxStore.list(context)
     }
 
+    suspend fun runExport() {
+        val capNow = capability ?: return
+        val fpNow = fingerprint ?: return
+        if (!capNow.canExportScene) return
+        exportBusy = true
+        exportMessage = ""
+        val result = withContext(Dispatchers.IO) {
+            ExportService.export(
+                context = context,
+                fingerprint = fpNow,
+                name = "本机 Scene 调度备份",
+                game = "",
+                style = "balance",
+                description = "由 SceneBox 导出",
+            )
+        }
+        exportBusy = false
+        exportMessage = result.message
+        refreshFiles()
+    }
+
+    val autoExport = remember {
+        (context as? android.app.Activity)?.intent?.getBooleanExtra("export_now", false) ?: false
+    }
+
     LaunchedEffect(Unit) {
         probe(prefs.getBoolean("try_root", false))
         refreshFiles()
+    }
+
+    // 测试/自动化入口：am start ... --ez export_now true
+    LaunchedEffect(capability) {
+        if (autoExport && capability?.canExportScene == true && exportMessage.isBlank()) {
+            runExport()
+        }
     }
 
     val current = opened
@@ -93,29 +125,7 @@ private fun Root() {
         busy = busy,
         exportBusy = exportBusy,
         exportMessage = exportMessage,
-        onExport = {
-            val capNow = capability
-            val fpNow = fingerprint
-            if (capNow != null && fpNow != null && capNow.canExportScene) {
-                exportBusy = true
-                exportMessage = ""
-                scope.launch {
-                    val result = withContext(Dispatchers.IO) {
-                        ExportService.export(
-                            context = context,
-                            fingerprint = fpNow,
-                            name = "本机 Scene 调度备份",
-                            game = "",
-                            style = "balance",
-                            description = "由 SceneBox 导出",
-                        )
-                    }
-                    exportBusy = false
-                    exportMessage = result.message
-                    refreshFiles()
-                }
-            }
-        },
+        onExport = { scope.launch { runExport() } },
         onRequestShizuku = {
             ShizukuBridge.request { granted ->
                 if (granted) {
