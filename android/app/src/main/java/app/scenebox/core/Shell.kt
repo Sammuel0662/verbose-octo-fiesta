@@ -54,9 +54,32 @@ object SuShell : ShellChannel {
 
 class ShizukuShell : ShellChannel {
     override val name = "shizuku"
+
+    /**
+     * Shizuku 13.x 把 `newProcess` 改成了 private（源码里是
+     * `private static ShizukuRemoteProcess newProcess(...)`，只加了 @RestrictTo），
+     * 公开 API 只剩 getBinder()，而 ShizukuRemoteProcess 的构造器又是包内可见，
+     * 没法从外部拼出来。所以这里用反射调私有方法。
+     *
+     * 失败时返回 null，上层自动降级到 AppShell —— 宁可功能少，不能崩。
+     * TODO(v0.3)：改成走 IShizukuService AIDL（api 依赖已经带了 shared 模块）。
+     */
+    private fun newProcessReflect(cmd: Array<String>): Process? = try {
+        val m = Shizuku::class.java.getDeclaredMethod(
+            "newProcess",
+            Array<String>::class.java,
+            Array<String>::class.java,
+            String::class.java,
+        )
+        m.isAccessible = true
+        m.invoke(null, cmd, null, null) as? Process
+    } catch (t: Throwable) {
+        null
+    }
+
     override fun exec(cmd: String, timeoutSec: Long): ShellResult {
+        val p = newProcessReflect(arrayOf("sh", "-c", cmd)) ?: return ShellResult(-1, "")
         return try {
-            val p = Shizuku.newProcess(arrayOf("sh", "-c", cmd), null, null)
             val done = p.waitFor(timeoutSec, TimeUnit.SECONDS)
             if (!done) p.destroy()
             val out = try {
