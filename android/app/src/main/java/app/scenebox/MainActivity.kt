@@ -232,37 +232,48 @@ private fun Root() {
     }
 
     fun startSampling() {
-        val fpNow = fingerprint ?: return
         sampling = true
         sampleCount = 0
         sampleFps = emptyList()
-        sampleTemps = emptyList()
         sampleSummary = ""
         scope.launch {
-            val layer = withContext(Dispatchers.IO) { FpsSampler.detectLayer() }
+            val pkg = withContext(Dispatchers.IO) { FpsSampler.foregroundPackage() }
+            if (pkg == null) {
+                sampling = false
+                sampleSummary = "读不到前台应用，无法采样"
+                return@launch
+            }
             val fpsList = mutableListOf<Int>()
             val tempList = mutableListOf<Float>()
+            var lastFrames = withContext(Dispatchers.IO) { FpsSampler.totalFrames(pkg) }
+            var lastAt = System.currentTimeMillis()
             repeat(30) { index ->
-                val fps = withContext(Dispatchers.IO) { layer?.let { FpsSampler.fps(it) } ?: 0 }
+                kotlinx.coroutines.delay(1000)
+                val now = System.currentTimeMillis()
+                val frames = withContext(Dispatchers.IO) { FpsSampler.totalFrames(pkg) }
                 val temp = FpsSampler.temperature(context)
+                val fps = if (lastFrames >= 0 && frames >= lastFrames) {
+                    (frames - lastFrames).toInt()
+                } else 0
+                lastFrames = frames
+                lastAt = now
                 fpsList += fps
                 tempList += temp
                 sampleFps = fpsList.toList()
-                sampleTemps = tempList.toList()
                 sampleCount = index + 1
-                kotlinx.coroutines.delay(1000)
             }
             sampling = false
-            val valid = fpsList.filter { it > 0 }
+            val valid = fpsList.filter { it in 1..240 }
             sampleSummary = buildString {
-                append("帧率 ")
-                append(if (valid.isEmpty()) "无有效样本" else
-                    "均值 ${valid.average().toInt()} / 峰值 ${valid.maxOrNull()} / 最低 ${valid.minOrNull()} FPS（${valid.size}/30 有效）")
+                append("前台 $pkg")
+                append("\n帧率 ")
+                append(
+                    if (valid.isEmpty()) "无有效样本（可能画面静止）"
+                    else "均值 ${valid.average().toInt()} / 峰值 ${valid.maxOrNull()} / 最低 ${valid.minOrNull()} FPS"
+                )
                 if (tempList.isNotEmpty()) {
-                    append("\n温度 ${tempList.first()}℃ → ${tempList.last()}℃")
-                    append("，最高 ${tempList.maxOrNull()}℃")
+                    append("\n温度 ${tempList.first()}℃ → ${tempList.last()}℃，最高 ${tempList.maxOrNull()}℃")
                 }
-                append("\n模块：${layer ?: "未找到图层"}")
             }
         }
     }
