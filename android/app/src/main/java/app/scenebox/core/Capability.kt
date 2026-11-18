@@ -46,8 +46,10 @@ object CapabilityProbe {
     fun probe(context: Context, tryRoot: Boolean): Capability {
         val evidence = mutableListOf<String>()
 
-        // 选通道：能 root 就用 root，其次 Shizuku，最后裸跑
-        val root = tryRoot && SuShell.exec("id -u", 6L).text() == "0"
+        // 选通道：能 root 就用 root，其次 Shizuku，最后裸跑。
+        // 超时必须给足：KernelSU/Magisk 首次授权会弹窗，用户还要看清再点"允许"，
+        // 6 秒根本不够，之前就是这里把已授权的用户判成了没授权。
+        val root = if (tryRoot) SuShell.exec("id -u", 20L).text() == "0" else false
         val granted = ShizukuBridge.granted()
         val channel: ShellChannel = when {
             root -> SuShell
@@ -55,6 +57,9 @@ object CapabilityProbe {
             else -> AppShell
         }
         evidence += "通道：${channel.name}"
+        if (tryRoot) {
+            evidence += if (root) "su 探测成功（uid 0）" else "su 探测失败：可能未授权或超时"
+        }
 
         // 1) 读频点表（T0 就能读，0444）
         val freq = channel.exec("cat $CPU/policy0/scaling_available_frequencies")

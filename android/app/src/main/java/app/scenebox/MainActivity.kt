@@ -1,5 +1,6 @@
 package app.scenebox
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -45,14 +46,17 @@ class MainActivity : ComponentActivity() {
 private fun Root() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val prefs = remember { context.getSharedPreferences("scenebox", Context.MODE_PRIVATE) }
 
     var capability by remember { mutableStateOf<Capability?>(null) }
     var fingerprint by remember { mutableStateOf<DeviceFingerprint?>(null) }
     var busy by remember { mutableStateOf(true) }
-    var lastTryRoot by remember { mutableStateOf(false) }
+    // 记住上次是否做过 root 探测：已授权的用户重启 App 后不必再点一次
+    var lastTryRoot by remember { mutableStateOf(prefs.getBoolean("try_root", false)) }
 
     fun probe(tryRoot: Boolean) {
         lastTryRoot = tryRoot
+        prefs.edit().putBoolean("try_root", tryRoot).apply()
         busy = true
         scope.launch {
             val fp = withContext(Dispatchers.IO) { DeviceFingerprint.collect() }
@@ -63,7 +67,7 @@ private fun Root() {
         }
     }
 
-    LaunchedEffect(Unit) { probe(false) }
+    LaunchedEffect(Unit) { probe(prefs.getBoolean("try_root", false)) }
 
     HomeScreen(
         cap = capability,
