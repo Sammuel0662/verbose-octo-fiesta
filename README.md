@@ -126,6 +126,27 @@ scenebox/
   data/snapshots/  快照
 ```
 
+## 四点二、Android 端已实现并真机验证的功能
+
+| 功能 | 状态 | 真机证据 |
+|---|---|---|
+| 权限分层探测（T0~T3） | ✅ | 一键检测权限，自动区分无特权/Shizuku/root/模块级 |
+| **配置导出 .sbox** | ✅ | App 导出 25 KB 包，Python 引擎解析通过，**checksum 匹配** |
+| **导入前预览** | ✅ | 打开包显示 256 条展开、20 节点、4 档位 |
+| **强校验** | ✅ | FREQ_ABOVE 3 处、FREQ_UNKNOWN 5 处，与 Python 对同一文件结果一致 |
+| **调度快照 A/B** | ✅ | 快照 42 节点；改 `scaling_max_freq` 1785600→1516800 后恢复，值复原 |
+| 一键检测权限 | ✅ | 单按钮跑完 su / Shizuku / Scene 可读性 / 写权限 |
+
+实现过程中踩到、且已经修掉的真机坑（都写进了代码注释）：
+
+1. **Shizuku 13.x 的 `newProcess` 是 private** → 反射调用 + 失败降级；
+2. **dumpsys 无权限时 stdout 输出 `Permission Denial` 且 exit=0** → 校验输出首行必须是纯数字；
+3. **应用 mount namespace 里 `/data/data/com.omarea.vtools` 被整个隐藏**（读到的是 No such file，
+   即使有 root）→ 用 `nsenter -t 1 -m` 进宿主命名空间读取；
+4. **快照的 glob 不能加引号**，否则 `policy*` 不展开，只抓到 11 个节点（修好后 42 个）；
+5. **CI 签名**：AGP 不把 key 放 `~/.android/debug.keystore`，改为 keytool 生成并缓存固定 key，
+   现在覆盖安装不再要求卸载（不会丢 root 授权）。
+
 ## 四点五、Kotlin 与 Python 引擎的一致性（实测）
 
 用 Python 引擎导出的 `out/*.sbox` 喂给 App 的预览页，两边对同一份输入的结果：
