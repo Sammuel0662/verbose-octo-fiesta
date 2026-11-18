@@ -38,6 +38,7 @@ import app.scenebox.sbox.SboxStore
 import app.scenebox.ui.GuideScreen
 import app.scenebox.ui.HomeScreen
 import app.scenebox.ui.PlazaScreen
+import app.scenebox.ui.StartupNoticeDialog
 import app.scenebox.ui.PreviewScreen
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -85,7 +86,7 @@ private fun Root() {
     var plazaIndex by remember { mutableStateOf<PlazaRepo.Index?>(null) }
     var plazaLoading by remember { mutableStateOf(false) }
     var plazaMessage by remember { mutableStateOf("") }
-    var noticeDismissed by remember { mutableStateOf(prefs.getBoolean("notice_v030", false)) }
+    var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
         lastTryRoot = tryRoot
@@ -206,6 +207,10 @@ private fun Root() {
         }
     }
 
+    if (!noticeAccepted) {
+        StartupNoticeDialog(onAccept = { noticeAccepted = true })
+    }
+
     if (showGuide) {
         GuideScreen(onBack = { showGuide = false })
         return
@@ -281,11 +286,6 @@ private fun Root() {
         },
         onProbeRoot = { probe(true) },
         onRefresh = { probe(lastTryRoot) },
-        noticeDismissed = noticeDismissed,
-        onDismissNotice = {
-            noticeDismissed = true
-            prefs.edit().putBoolean("notice_v030", true).apply()
-        },
         onOpenGuide = { showGuide = true },
         onOpenPlaza = {
             showPlaza = true

@@ -51,8 +51,6 @@ fun HomeScreen(
     snapshotMessage: String,
     onSnapshotSave: (String) -> Unit,
     onSnapshotRestore: (String) -> Unit,
-    noticeDismissed: Boolean,
-    onDismissNotice: () -> Unit,
     onOpenGuide: () -> Unit,
     onOpenPlaza: () -> Unit,
     cleanupMessage: String,
@@ -87,19 +85,6 @@ fun HomeScreen(
 
         if (busy) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-        }
-
-        if (!noticeDismissed) {
-            Section("公告") {
-                Text(
-                    "v0.3.0：支持导出 .sbox、导入到 Scene、快照 A/B。\n" +
-                        "导入前会自动备份原配置，随时可以在「清理与还原」里一键撤销。",
-                    fontSize = 12.sp,
-                )
-                TextButton(onClick = onDismissNotice) {
-                    Text("知道了，不再提示", fontSize = 12.sp)
-                }
-            }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
