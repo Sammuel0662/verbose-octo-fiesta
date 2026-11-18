@@ -13,7 +13,7 @@ import kotlinx.serialization.json.put
  *
  * 做法：
  *  1. 读 Scene 的真实 profile（字段一个不动）；
- *  2. alias 里追加本机真实 policy 的路径（如 sbox_max_p0 -> policy0/scaling_max_freq）；
+ *  2. 按本机真实 policy 生成绝对路径写入（不依赖 Scene 的别名解析）；
  *  3. schemes.balance.app 末尾追加这批写入（后写的会覆盖先写的）；
  *  4. 其余 features / apps / games / presets 原样保留。
  *
@@ -45,16 +45,6 @@ object ProfileService {
     ): Patched {
         val policies = fingerprint.policies
         val changes = mutableListOf<String>()
-
-        // 1) alias 追加本机路径
-        val aliasMap = (source["alias"] as? JsonObject)
-            ?.entries?.associate { it.key to it.value }?.toMutableMap() ?: mutableMapOf()
-        for ((index, policy) in policies.withIndex()) {
-            aliasMap["sbox_max_p$index"] =
-                JsonPrimitive("/sys/devices/system/cpu/cpufreq/${policy.name}/scaling_max_freq")
-            aliasMap["sbox_min_p$index"] =
-                JsonPrimitive("/sys/devices/system/cpu/cpufreq/${policy.name}/scaling_min_freq")
-        }
 
         // 2) 组装要追加的写入
         val appended = mutableListOf<JsonElement>()
@@ -91,7 +81,7 @@ object ProfileService {
             val policy = policies.getOrNull(index) ?: continue
             val freq = freqFor(policy, pct, true) ?: continue
             appended.add(buildJsonArray {
-                add(JsonPrimitive("\$sbox_max_p$index"))
+                add(JsonPrimitive("/sys/devices/system/cpu/cpufreq/${policy.name}/scaling_max_freq"))
                 add(JsonPrimitive(freq.toString()))
             })
             changes += "${policy.name} 上限=$freq(${pct}%)"
@@ -100,7 +90,7 @@ object ProfileService {
             val policy = policies.getOrNull(index) ?: continue
             val freq = freqFor(policy, pct, false) ?: continue
             appended.add(buildJsonArray {
-                add(JsonPrimitive("\$sbox_min_p$index"))
+                add(JsonPrimitive("/sys/devices/system/cpu/cpufreq/${policy.name}/scaling_min_freq"))
                 add(JsonPrimitive(freq.toString()))
             })
             changes += "${policy.name} 下限=$freq(${pct}%)"
@@ -134,14 +124,8 @@ object ProfileService {
         // 4) 重建 profile：未涉及字段原样保留
         val rebuilt = buildJsonObject {
             for ((key, value) in source) {
-                when (key) {
-                    "alias" -> put("alias", JsonObject(aliasMap))
-                    "schemes" -> put("schemes", JsonObject(schemes))
-                    else -> put(key, value)
-                }
+                if (key == "schemes") put("schemes", JsonObject(schemes)) else put(key, value)
             }
-            // 极少数情况下原文件没有 alias/schemes
-            if (source["alias"] == null) put("alias", JsonObject(aliasMap))
             if (source["schemes"] == null) put("schemes", JsonObject(schemes))
         }
 
