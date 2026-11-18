@@ -31,6 +31,8 @@ import app.scenebox.sbox.ImportService
 import app.scenebox.core.SceneFiles
 import app.scenebox.core.SnapshotService
 import app.scenebox.core.LiveStatus
+import app.scenebox.core.SceneState
+import app.scenebox.core.SysfsApply
 import app.scenebox.core.ProfileService
 import app.scenebox.core.SystemReset
 import app.scenebox.core.SuShell
@@ -206,13 +208,20 @@ private fun Root() {
         val item = index.categories.firstOrNull()?.items?.firstOrNull() ?: return@LaunchedEffect
         autoApplied = true
         plazaMessage = "正在应用 ${item.name}…"
-        val raw = withContext(Dispatchers.IO) { SceneFiles.profile(SuShell) }
-        val patched = raw?.let { ProfileService.patch(it, item.patch, fpNow) }
-        val written = patched?.let { ImportService.writeProfile(it.profile) }
-        plazaMessage = when {
-            patched == null -> "❌ 读不到 Scene 的 profile（需要 root）"
-            written == null || !written.ok -> "❌ ${written?.message ?: "写入失败"}"
-            else -> "✅ 已写入 Scene 方案：${patched.changes.take(4).joinToString("、")}"
+        plazaMessage = withContext(Dispatchers.IO) {
+            if (SceneState.detect().willApply) {
+                val raw = SceneFiles.profile(SuShell)
+                if (raw == null) "❌ 读不到 Scene 的 profile（需要 root）"
+                else {
+                    val patched = ProfileService.patch(raw, item.patch, fpNow)
+                    val written = ImportService.writeProfile(patched.profile)
+                    if (!written.ok) "❌ ${written.message}"
+                    else "✅ 已写入 Scene 方案：${patched.changes.take(3).joinToString("、")}"
+                }
+            } else {
+                val r = SysfsApply.apply(item.patch, fpNow)
+                if (r.ok) "✅ ${r.message}" else "❌ ${r.message}"
+            }
         }
     }
 
@@ -295,15 +304,23 @@ private fun Root() {
                 scope.launch {
                     val message = withContext(Dispatchers.IO) {
                         if (fpNow == null) return@withContext "❌ 缺少本机频点表"
-                        val raw = SceneFiles.profile(SuShell)
-                            ?: return@withContext "❌ 读不到 Scene 的 profile（需要 root）"
-                        val patched = ProfileService.patch(raw, item.patch, fpNow)
-                        if (patched.changes.isEmpty()) return@withContext "❌ 没有可应用的项"
-                        val written = ImportService.writeProfile(patched.profile)
-                        if (!written.ok) return@withContext "❌ ${written.message}"
-                        "✅ 已写入 Scene 方案：${patched.changes.take(4).joinToString("、")}" +
-                            "\n原配置已备份：${written.backupName}\n" +
-                            "回到 Scene 切换一次档位即可生效"
+                        if (SceneState.detect().willApply) {
+                            // Scene 会下发：写 profile 补丁，避免被它覆盖
+                            val raw = SceneFiles.profile(SuShell)
+                                ?: return@withContext "❌ 读不到 Scene 的 profile（需要 root）"
+                            val patched = ProfileService.patch(raw, item.patch, fpNow)
+                            if (patched.changes.isEmpty()) return@withContext "❌ 没有可应用的项"
+                            val written = ImportService.writeProfile(patched.profile)
+                            if (!written.ok) return@withContext "❌ ${written.message}"
+                            "✅ 已写入 Scene 方案（Scene 会自动下发）：" +
+                                "${patched.changes.take(3).joinToString("、")}" +
+                                "\n原配置已备份：${written.backupName}"
+                        } else {
+                            // Scene 自动调度关着：直接写内核，写了就生效
+                            val r = SysfsApply.apply(item.patch, fpNow)
+                            if (!r.ok) "❌ ${r.message}"
+                            else "✅ ${r.message}\n（Scene 自动调度未启用，已直接写内核）"
+                        }
                     }
                     plazaApplying = false
                     plazaMessage = message
