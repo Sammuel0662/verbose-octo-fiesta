@@ -1,6 +1,8 @@
 package app.scenebox
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -19,7 +21,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import app.scenebox.community.PlazaRepo
 import app.scenebox.core.Capability
+import app.scenebox.community.PlazaRepo
 import app.scenebox.core.CapabilityProbe
 import app.scenebox.core.DeviceFingerprint
 import app.scenebox.core.ShizukuBridge
@@ -34,6 +38,7 @@ import app.scenebox.sbox.SboxBundle
 import app.scenebox.sbox.SboxStore
 import app.scenebox.ui.GuideScreen
 import app.scenebox.ui.HomeScreen
+import app.scenebox.ui.PlazaScreen
 import app.scenebox.ui.PreviewScreen
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -77,6 +82,10 @@ private fun Root() {
     var importMessage by remember { mutableStateOf("") }
     var cleanupMessage by remember { mutableStateOf("") }
     var showGuide by remember { mutableStateOf(false) }
+    var showPlaza by remember { mutableStateOf(false) }
+    var plazaIndex by remember { mutableStateOf<PlazaRepo.Index?>(null) }
+    var plazaLoading by remember { mutableStateOf(false) }
+    var plazaMessage by remember { mutableStateOf("") }
     var noticeDismissed by remember { mutableStateOf(prefs.getBoolean("notice_v030", false)) }
 
     fun probe(tryRoot: Boolean) {
@@ -203,6 +212,58 @@ private fun Root() {
         return
     }
 
+    if (showPlaza) {
+        PlazaScreen(
+            index = plazaIndex,
+            loading = plazaLoading,
+            message = plazaMessage,
+            onRefresh = {
+                plazaLoading = true
+                plazaMessage = ""
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) {
+                        runCatching { PlazaRepo.fetch() }
+                    }
+                    plazaLoading = false
+                    result.onSuccess { plazaIndex = it }
+                        .onFailure { plazaMessage = it.message ?: "加载失败" }
+                }
+            },
+            onDownload = { item ->
+                plazaMessage = "正在下载 ${item.name}…"
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) {
+                        runCatching { PlazaRepo.download(context, item) }
+                    }
+                    result.onSuccess { file ->
+                        refreshFiles()
+                        plazaMessage = "已下载到「下载的配置」"
+                        runCatching { SboxStore.load(file) }.onSuccess {
+                            opened = file.name to it
+                            showPlaza = false
+                        }
+                    }.onFailure { plazaMessage = "下载失败：${it.message}" }
+                }
+            },
+            onOpenGuide = { url ->
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                }
+            },
+            onBack = { showPlaza = false },
+        )
+        return
+    }
+
+    LaunchedEffect(showPlaza) {
+        if (showPlaza && plazaIndex == null && !plazaLoading) {
+            plazaLoading = true
+            val result = withContext(Dispatchers.IO) { runCatching { PlazaRepo.fetch() } }
+            plazaLoading = false
+            result.onSuccess { plazaIndex = it }.onFailure { plazaMessage = it.message ?: "加载失败" }
+        }
+    }
+
     val current = opened
     if (current == null) {
     HomeScreen(
@@ -227,6 +288,19 @@ private fun Root() {
             prefs.edit().putBoolean("notice_v030", true).apply()
         },
         onOpenGuide = { showGuide = true },
+        onOpenPlaza = {
+            showPlaza = true
+            if (plazaIndex == null && !plazaLoading) {
+                plazaLoading = true
+                plazaMessage = ""
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) { runCatching { PlazaRepo.fetch() } }
+                    plazaLoading = false
+                    result.onSuccess { plazaIndex = it }
+                        .onFailure { plazaMessage = it.message ?: "加载失败" }
+                }
+            }
+        },
         cleanupMessage = cleanupMessage,
         onCleanup = { action ->
             scope.launch {

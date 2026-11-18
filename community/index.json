@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "updated_at": "2026-11-18 15:48",
+  "notice": "首版广场：示例模板 + 公开教程。真实玩家方案需要投稿后审核上架。",
+  "items": [
+    {
+      "id": "demo-minimal",
+      "name": "示例模板 · 最小可用",
+      "game": "通用",
+      "soc": "SM8735",
+      "author": "SceneBox",
+      "desc": "教学用途，演示\"预览→校验→导入\"全流程，不是推荐参数",
+      "risk": "low",
+      "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/demo-minimal.sbox",
+      "source": "https://github.com/Sammuel0662/verbose-octo-fiesta"
+    }
+  ],
+  "guides": [
+    {
+      "title": "YC调度 + Scene 系统调度控制教程",
+      "source": "微信公众号",
+      "url": "https://mp.weixin.qq.com/s?__biz=MzU4NzQ3Njk0Mw==&idx=1&mid=2247550492&sn=6f3feee0118a9198f3ad85e182fbbed1"
+    },
+    {
+      "title": "scene 自定义调度教学（视频）",
+      "source": "bilibili",
+      "url": "https://www.bilibili.com/video/BV1qUvNzmEHn"
+    },
+    {
+      "title": "骁龙 8gen2 超频降压方法",
+      "source": "酷安",
+      "url": "https://coolapk.com/feed/46139234"
+    },
+    {
+      "title": "手机优化小寄巧（Scene / Magisk 模块整理）",
+      "source": "博客",
+      "url": "https://jackxzj.github.io/posts/8a17c75b/"
+    },
+    {
+      "title": "helloklf/scheduler（Scene 作者的调度引擎）",
+      "source": "GitHub",
+      "url": "https://github.com/helloklf/scheduler"
+    },
+    {
+      "title": "pgjh/fas-rs 帧感知调度",
+      "source": "GitHub",
+      "url": "https://github.com/pgjh/fas-rs"
+    }
+  ]
+}

@@ -54,6 +54,7 @@ fun HomeScreen(
     noticeDismissed: Boolean,
     onDismissNotice: () -> Unit,
     onOpenGuide: () -> Unit,
+    onOpenPlaza: () -> Unit,
     cleanupMessage: String,
     onCleanup: (String) -> Unit,
 ) {
@@ -101,7 +102,10 @@ fun HomeScreen(
             }
         }
 
-        TextButton(onClick = onOpenGuide) { Text("使用教程 →") }
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            TextButton(onClick = onOpenGuide) { Text("使用教程 →") }
+            TextButton(onClick = onOpenPlaza) { Text("配置广场 →") }
+        }
 
         if (cap != null) {
             Section("权限层级") {
