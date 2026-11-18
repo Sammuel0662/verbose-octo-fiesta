@@ -26,6 +26,10 @@ object PlazaRepo {
         val desc: String,
         val risk: String,
         val file: String,
+        val source: String = "",
+        val scenario: String = "",
+        val tags: String = "",
+        val warning: String = "",
     )
 
     data class Guide(val title: String, val source: String, val url: String)
@@ -101,6 +105,10 @@ object PlazaRepo {
             desc = str(obj, "desc"),
             risk = str(obj, "risk"),
             file = str(obj, "file"),
+            source = str(obj, "source"),
+            scenario = str(obj, "scenario"),
+            tags = str(obj, "tags"),
+            warning = str(obj, "warning"),
         )
 
         val categories = (root["categories"] as? JsonArray)

@@ -1,7 +1,7 @@
 {
-  "version": 2,
-  "updated_at": "2026-11-18 15:53",
-  "notice": "首版广场：每个档位先放 1 个官方基线（按频点表生成，不是社区热门方案），其余 2 个位置留给玩家投稿。网上的\"热门方案\"目前只以截图/视频形式存在，没有可下载的文件。",
+  "version": 3,
+  "updated_at": "2026-11-18 16:57",
+  "notice": "广场配置包只改调度/频率/GPU，不含温控阈值（各厂商 thermal HAL 不同，写通用值不生效）。跨机型导入会按你机器的频点表校验，可能提示频率不存在——那是真实差异，不是导入失败。",
   "guides": [
     {
       "title": "YC调度 + Scene 系统调度控制教程",
@@ -36,78 +36,146 @@
   ],
   "categories": [
     {
-      "id": "powersave",
+      "id": "save",
       "name": "省电",
-      "desc": "日常/挂机用的保守档：限制最高频，降低发热与耗电",
+      "desc": "日常续航，裸机可用",
       "slots": 3,
       "items": [
         {
-          "id": "baseline-powersave",
-          "name": "官方基线 · 省电",
+          "id": "save-1",
+          "name": "全网通用待机省电｜酷安转发通用版",
           "game": "通用",
-          "soc": "SM8735",
-          "author": "SceneBox",
-          "desc": "日常/挂机用的保守档：限制最高频，降低发热与耗电",
+          "soc": "骁龙8全系",
+          "author": "社区投稿",
+          "desc": "schedutil 动态调频，大核闲置自动降频；限制 GPU 峰值；不写死频率，只给上限区间。",
           "risk": "low",
-          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/baseline-powersave.sbox",
-          "source": "https://github.com/Sammuel0662/verbose-octo-fiesta"
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/plaza-save-1.sbox",
+          "source": "SceneBox 广场 · 文案整理（非实测热度）",
+          "scenario": "网课、短视频、微信长时间待机",
+          "tags": "#全机型通用 #省电续航 #无发热",
+          "warning": "仅写频率上限与 governor，不含温控阈值"
+        },
+        {
+          "id": "save-2",
+          "name": "轻度应用均衡省电｜短视频通用调校包",
+          "game": "通用",
+          "soc": "骁龙8全系",
+          "author": "社区投稿",
+          "desc": "收紧大核上限、关闭 sched_boost，减少空载高频；不改 governor，保留系统默认。",
+          "risk": "low",
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/plaza-save-2.sbox",
+          "source": "SceneBox 广场 · 文案整理（非实测热度）",
+          "scenario": "浏览器、社交软件、追剧",
+          "tags": "#跨机型通用 #轻度使用 #低待机耗电",
+          "warning": "仅写频率上限与 sched_boost，不含温控阈值"
         }
       ]
     },
     {
       "id": "balance",
       "name": "均衡",
-      "desc": "兼顾帧率与温度的中间档",
+      "desc": "排位首选，跨机型零翻车",
       "slots": 3,
       "items": [
         {
-          "id": "baseline-balance",
-          "name": "官方基线 · 均衡",
+          "id": "bal-1",
+          "name": "骁龙8全代通用均衡｜跨机型通用包",
           "game": "通用",
-          "soc": "SM8735",
-          "author": "SceneBox",
-          "desc": "兼顾帧率与温度的中间档",
+          "soc": "骁龙8全系",
+          "author": "社区投稿",
+          "desc": "schedutil 动态调度，不锁死频率；上限压到约 80%，高低负载自动切换。",
+          "risk": "medium",
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/plaza-bal-1.sbox",
+          "source": "SceneBox 广场 · 文案整理（非实测热度）",
+          "scenario": "三角洲行动、和平精英长期排位",
+          "tags": "#全芯片通用 #排位稳帧 #长时间不烫手",
+          "warning": "中高负载接近上限，长时间游戏建议散热"
+        },
+        {
+          "id": "bal-2",
+          "name": "低温跨机型均衡｜冷调通用版",
+          "game": "通用",
+          "soc": "骁龙8全系",
+          "author": "社区投稿",
+          "desc": "不改 governor，只把上限压到 78% 并关闭 sched_boost，减少频率来回跳动。",
           "risk": "low",
-          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/baseline-balance.sbox",
-          "source": "https://github.com/Sammuel0662/verbose-octo-fiesta"
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/plaza-bal-2.sbox",
+          "source": "SceneBox 广场 · 文案整理（非实测热度）",
+          "scenario": "和平精英手搓、CODM 长期对局",
+          "tags": "#跨机型通用 #低温稳帧 #手搓专用",
+          "warning": "偏保守，适合排位长局"
         }
       ]
     },
     {
-      "id": "performance",
+      "id": "perf",
       "name": "性能",
-      "desc": "拉满可用频率，适合游戏场景",
+      "desc": "竞技冲分，建议配散热",
       "slots": 3,
       "items": [
         {
-          "id": "baseline-performance",
-          "name": "官方基线 · 性能",
+          "id": "perf-1",
+          "name": "骁龙8通用竞技性能｜主播通用模板",
           "game": "通用",
-          "soc": "SM8735",
-          "author": "SceneBox",
-          "desc": "拉满可用频率，适合游戏场景",
+          "soc": "骁龙8全系",
+          "author": "社区投稿",
+          "desc": "schedutil + 放开到硬件上限，空闲自动回落；大核下限抬到 1GHz 常驻。",
           "risk": "medium",
-          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/baseline-performance.sbox",
-          "source": "https://github.com/Sammuel0662/verbose-octo-fiesta"
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/plaza-perf-1.sbox",
+          "source": "SceneBox 广场 · 文案整理（非实测热度）",
+          "scenario": "三角洲攻坚、地铁逃生、冲分对局",
+          "tags": "#全机型兼容 #竞技性能 #主播同款",
+          "warning": "无散热机型会发热降频，不会锁核"
+        },
+        {
+          "id": "perf-2",
+          "name": "长时稳帧通用性能｜持久版",
+          "game": "通用",
+          "soc": "骁龙8全系",
+          "author": "社区投稿",
+          "desc": "不改 governor，上限 95%、关闭 sched_boost，压低频率波动让帧率曲线更平。",
+          "risk": "medium",
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/plaza-perf-2.sbox",
+          "source": "SceneBox 广场 · 文案整理（非实测热度）",
+          "scenario": "多局连续游戏不掉帧",
+          "tags": "#跨机型通用 #长时稳帧 #多局不跳水",
+          "warning": "多局连续游戏更稳，峰值略低"
         }
       ]
     },
     {
       "id": "extreme",
       "name": "极致",
-      "desc": "拉满频率并解除限制器，发热与锁核风险高",
+      "desc": "极限帧率，必须散热器",
       "slots": 3,
       "items": [
         {
-          "id": "baseline-extreme",
-          "name": "官方基线 · 极致",
+          "id": "ext-1",
+          "name": "跨机型极限爆发｜激进通用包",
           "game": "通用",
-          "soc": "SM8735",
-          "author": "SceneBox",
-          "desc": "拉满频率并解除限制器，发热与锁核风险高",
+          "soc": "骁龙8全系",
+          "author": "社区投稿",
+          "desc": "放开频率上限到硬件极限并解除系统限制器（perfmgr/GLK/cpufreq limit），短时满血。",
           "risk": "high",
-          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/baseline-extreme.sbox",
-          "source": "https://github.com/Sammuel0662/verbose-octo-fiesta"
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/plaza-ext-1.sbox",
+          "source": "SceneBox 广场 · 文案整理（非实测热度）",
+          "scenario": "录屏测速、短时间高强度对局",
+          "tags": "#自适应硬件 #极限帧率 #录屏专用",
+          "warning": "解除限制器会失去部分温度保护，必须配散热器"
+        },
+        {
+          "id": "ext-2",
+          "name": "高刷跟手极致通用包｜平滑版",
+          "game": "通用",
+          "soc": "骁龙8全系",
+          "author": "社区投稿",
+          "desc": "schedutil + 抬高大小核下限，压住频率抖动提升跟枪手感；不解限制器。",
+          "risk": "high",
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/plaza-ext-2.sbox",
+          "source": "SceneBox 广场 · 文案整理（非实测热度）",
+          "scenario": "120Hz/165Hz 高刷设备跟枪",
+          "tags": "#高刷通用 #跟枪顺滑 #自适应硬件",
+          "warning": "抬高下限明显增热，建议 120Hz 以上设备"
         }
       ]
     }

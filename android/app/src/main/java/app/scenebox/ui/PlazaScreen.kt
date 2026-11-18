@@ -77,14 +77,51 @@ fun PlazaScreen(
                         )
                     }
                     for (item in category.items) {
-                        Text(item.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        Text(
-                            "${item.game} · ${item.soc} · ${item.author} · 风险 ${item.risk}",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        if (item.desc.isNotBlank()) Text(item.desc, fontSize = 12.sp)
-                        Button(onClick = { onDownload(item) }) { Text("下载并预览") }
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = MaterialTheme.shapes.medium,
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(5.dp),
+                            ) {
+                                Text(item.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                if (item.tags.isNotBlank()) {
+                                    Text(
+                                        item.tags,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                                if (item.scenario.isNotBlank()) {
+                                    Text("适合：${item.scenario}", fontSize = 11.sp)
+                                }
+                                if (item.desc.isNotBlank()) {
+                                    Text(
+                                        item.desc,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                Text(
+                                    "风险 ${item.risk} · ${item.author}" +
+                                        if (item.source.isNotBlank()) " · 来源：${item.source}" else "",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                                if (item.warning.isNotBlank()) {
+                                    Text(
+                                        "⚠ ${item.warning}",
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                                Button(onClick = { onDownload(item) }) {
+                                    Text("下载并预览", fontSize = 12.sp)
+                                }
+                            }
+                        }
                     }
                     val empty = (category.slots - category.items.size).coerceAtLeast(0)
                     if (empty > 0) {
