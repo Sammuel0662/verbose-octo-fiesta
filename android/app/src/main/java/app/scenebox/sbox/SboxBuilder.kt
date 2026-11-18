@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
@@ -152,7 +153,7 @@ object SboxBuilder {
                 putJsonArray("games") { games.forEach { add(it) } }
                 putJsonArray("refresh_rate") {
                     refreshRate.forEach { row ->
-                        putJsonObject {
+                        addJsonObject {
                             put("package", row.getOrElse(0) { "" })
                             put("min", row.getOrElse(1) { "0" }.toIntOrNull() ?: 0)
                             put("max", row.getOrElse(2) { "0" }.toIntOrNull() ?: 0)
@@ -168,7 +169,7 @@ object SboxBuilder {
                     put("risk", analysis.risk)
                     putJsonArray("items") {
                         analysis.items.forEach { (level, message) ->
-                            putJsonObject {
+                            addJsonObject {
                                 put("level", level)
                                 put("code", "ANDROID_" + level.uppercase(Locale.US))
                                 put("message", message)
