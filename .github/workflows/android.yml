@@ -26,25 +26,36 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      # 固定 debug.keystore：否则每次构建都是新签名，覆盖安装会
-      # INSTALL_FAILED_UPDATE_INCOMPATIBLE。用显式 restore/save，
-      # 保证"构建之后再存"，不会存到空目录。
-      - name: Restore debug keystore
+      # AGP 并不会把 key 放在 ~/.android/debug.keystore（实测缓存步骤报
+      # Path does not exist），所以这里自己生成一把固定 key 并缓存，
+      # 保证每次构建签名一致，覆盖安装不会 INSTALL_FAILED_UPDATE_INCOMPATIBLE。
+      - name: Restore signing key
         id: keystore
         uses: actions/cache/restore@v4
         with:
-          path: ~/.android/debug.keystore
-          key: scenebox-debug-keystore-v2
+          path: ~/scenebox-debug.keystore
+          key: scenebox-keystore-v3
+
+      - name: Generate signing key if missing
+        if: steps.keystore.outputs.cache-hit != 'true'
+        run: |
+          keytool -genkeypair -v \
+            -keystore "$HOME/scenebox-debug.keystore" \
+            -storepass android -keypass android \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
 
       - name: Assemble debug
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: |
+          export SBOX_KEYSTORE="$HOME/scenebox-debug.keystore"
+          gradle assembleDebug --no-daemon --stacktrace
 
-      - name: Save debug keystore
+      - name: Save signing key
         if: steps.keystore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: ~/.android/debug.keystore
-          key: scenebox-debug-keystore-v2
+          path: ~/scenebox-debug.keystore
+          key: scenebox-keystore-v3
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

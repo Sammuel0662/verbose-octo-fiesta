@@ -5,6 +5,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+// CI 用固定签名 key（本地开发不设置此变量，仍走默认 debug key）
+val ciKeystore: String? = System.getenv("SBOX_KEYSTORE")
+
 android {
     namespace = "app.scenebox"
     compileSdk = 35
@@ -17,7 +20,23 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        if (ciKeystore != null) {
+            create("ci") {
+                storeFile = file(ciKeystore)
+                storePassword = System.getenv("SBOX_KEYSTORE_PASS") ?: "android"
+                keyAlias = System.getenv("SBOX_KEY_ALIAS") ?: "androiddebugkey"
+                keyPassword = System.getenv("SBOX_KEYSTORE_PASS") ?: "android"
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            if (ciKeystore != null) {
+                signingConfig = signingConfigs.getByName("ci")
+            }
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
