@@ -31,8 +31,11 @@ fun PlazaScreen(
     index: PlazaRepo.Index?,
     loading: Boolean,
     message: String,
+    applying: Boolean,
+    canApply: Boolean,
     onRefresh: () -> Unit,
     onDownload: (PlazaRepo.Item) -> Unit,
+    onApply: (PlazaRepo.Item) -> Unit,
     onOpenGuide: (String) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -146,8 +149,17 @@ fun PlazaScreen(
                                         color = MaterialTheme.colorScheme.error,
                                     )
                                 }
-                                Button(onClick = { onDownload(item) }) {
-                                    Text("下载并预览", fontSize = 12.sp)
+                                if (item.patch.isNotEmpty()) {
+                                    Button(
+                                        onClick = { onApply(item) },
+                                        enabled = canApply && !applying,
+                                    ) {
+                                        Text(if (applying) "应用中…" else "应用方案", fontSize = 12.sp)
+                                    }
+                                } else {
+                                    Button(onClick = { onDownload(item) }) {
+                                        Text("下载并预览", fontSize = 12.sp)
+                                    }
                                 }
                             }
                         }

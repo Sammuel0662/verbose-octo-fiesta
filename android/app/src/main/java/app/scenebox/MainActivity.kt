@@ -30,6 +30,7 @@ import app.scenebox.sbox.CleanupService
 import app.scenebox.sbox.ImportService
 import app.scenebox.core.SceneFiles
 import app.scenebox.core.SnapshotService
+import app.scenebox.core.PatchService
 import app.scenebox.core.SystemReset
 import app.scenebox.core.SuShell
 import app.scenebox.sbox.SboxBundle
@@ -88,6 +89,7 @@ private fun Root() {
     var plazaIndex by remember { mutableStateOf<PlazaRepo.Index?>(null) }
     var plazaLoading by remember { mutableStateOf(false) }
     var plazaMessage by remember { mutableStateOf("") }
+    var plazaApplying by remember { mutableStateOf(false) }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -172,6 +174,8 @@ private fun Root() {
     val autoOpen = remember { activityIntent?.getStringExtra("open_file") }
     val autoImport = remember { activityIntent?.getBooleanExtra("import_now", false) ?: false }
     val autoSystemReset = remember { activityIntent?.getBooleanExtra("system_reset", false) ?: false }
+    val autoApplyFirst = remember { activityIntent?.getBooleanExtra("apply_first", false) ?: false }
+    var autoApplied by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         probe(prefs.getBoolean("try_root", false))
@@ -179,6 +183,28 @@ private fun Root() {
     }
 
     // 测试/自动化入口：am start ... --ez export_now true
+    // 自动化：--ez apply_first true 应用广场第一个方案（便于验证）
+    LaunchedEffect(autoApplyFirst, capability, plazaIndex) {
+        if (autoApplyFirst && !autoApplied && capability?.canWriteSysfs == true) {
+            val item = plazaIndex?.categories?.firstOrNull()?.items?.firstOrNull()
+            if (item != null) {
+                autoApplied = true
+                val fpNow = fingerprint
+                plazaMessage = "正在应用 ${item.name}…"
+                val result = withContext(Dispatchers.IO) {
+                    if (fpNow == null) PatchService.Result(false, "缺少本机频点表")
+                    else PatchService.apply(item.patch, fpNow)
+                }
+                plazaMessage = if (result.ok) "✅ ${result.message}" else "❌ ${result.message}"
+            } else if (plazaIndex == null && !plazaLoading) {
+                plazaLoading = true
+                val fetched = withContext(Dispatchers.IO) { runCatching { PlazaRepo.fetch() } }
+                plazaLoading = false
+                fetched.onSuccess { plazaIndex = it }
+            }
+        }
+    }
+
     LaunchedEffect(exports, downloads) {
         val name = autoOpen
         val all = exports + downloads
@@ -238,6 +264,21 @@ private fun Root() {
                     plazaLoading = false
                     result.onSuccess { plazaIndex = it }
                         .onFailure { plazaMessage = "❌ 加载失败：${it.message ?: "未知错误"}" }
+                }
+            },
+            applying = plazaApplying,
+            canApply = capability?.canWriteSysfs == true,
+            onApply = { item ->
+                val fpNow = fingerprint
+                plazaApplying = true
+                plazaMessage = "正在应用 ${item.name}…"
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) {
+                        if (fpNow == null) PatchService.Result(false, "缺少本机频点表")
+                        else PatchService.apply(item.patch, fpNow)
+                    }
+                    plazaApplying = false
+                    plazaMessage = if (result.ok) "✅ ${result.message}" else "❌ ${result.message}"
                 }
             },
             onDownload = { item ->

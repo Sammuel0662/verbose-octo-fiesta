@@ -30,6 +30,7 @@ object PlazaRepo {
         val scenario: String = "",
         val tags: String = "",
         val warning: String = "",
+        val patch: List<Pair<String, String>> = emptyList(),
     )
 
     data class Guide(val title: String, val source: String, val url: String)
@@ -109,6 +110,13 @@ object PlazaRepo {
             scenario = str(obj, "scenario"),
             tags = str(obj, "tags"),
             warning = str(obj, "warning"),
+            patch = (obj["patch"] as? JsonArray)
+                ?.mapNotNull { it as? JsonObject }
+                ?.mapNotNull { entry ->
+                    val k = str(entry, "k")
+                    val v = str(entry, "v")
+                    if (k.isBlank()) null else k to v
+                } ?: emptyList(),
         )
 
         val categories = (root["categories"] as? JsonArray)
