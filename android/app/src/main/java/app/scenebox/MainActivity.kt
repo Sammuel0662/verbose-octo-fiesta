@@ -22,12 +22,14 @@ import app.scenebox.core.CapabilityProbe
 import app.scenebox.core.DeviceFingerprint
 import app.scenebox.core.ShizukuBridge
 import app.scenebox.sbox.ExportService
+import app.scenebox.sbox.CleanupService
 import app.scenebox.sbox.ImportService
 import app.scenebox.core.SceneFiles
 import app.scenebox.core.SnapshotService
 import app.scenebox.core.SuShell
 import app.scenebox.sbox.SboxBundle
 import app.scenebox.sbox.SboxStore
+import app.scenebox.ui.GuideScreen
 import app.scenebox.ui.HomeScreen
 import app.scenebox.ui.PreviewScreen
 import java.io.File
@@ -69,6 +71,9 @@ private fun Root() {
     var snapshotMessage by remember { mutableStateOf("") }
     var importBusy by remember { mutableStateOf(false) }
     var importMessage by remember { mutableStateOf("") }
+    var cleanupMessage by remember { mutableStateOf("") }
+    var showGuide by remember { mutableStateOf(false) }
+    var noticeDismissed by remember { mutableStateOf(prefs.getBoolean("notice_v030", false)) }
 
     fun probe(tryRoot: Boolean) {
         lastTryRoot = tryRoot
@@ -170,6 +175,11 @@ private fun Root() {
         }
     }
 
+    if (showGuide) {
+        GuideScreen(onBack = { showGuide = false })
+        return
+    }
+
     val current = opened
     if (current == null) {
     HomeScreen(
@@ -188,6 +198,26 @@ private fun Root() {
         },
         onProbeRoot = { probe(true) },
         onRefresh = { probe(lastTryRoot) },
+        noticeDismissed = noticeDismissed,
+        onDismissNotice = {
+            noticeDismissed = true
+            prefs.edit().putBoolean("notice_v030", true).apply()
+        },
+        onOpenGuide = { showGuide = true },
+        cleanupMessage = cleanupMessage,
+        onCleanup = { action ->
+            scope.launch {
+                val result = withContext(Dispatchers.IO) {
+                    when (action) {
+                        "exports" -> CleanupService.clearExports(context)
+                        "snapshots" -> CleanupService.clearSnapshots(context)
+                        else -> CleanupService.restoreLatestBackup()
+                    }
+                }
+                cleanupMessage = result.message
+                refreshFiles()
+            }
+        },
         snapshotMessage = snapshotMessage,
         onSnapshotSave = { label -> scope.launch { runSnapshot(true, label) } },
         onSnapshotRestore = { label -> scope.launch { runSnapshot(false, label) } },

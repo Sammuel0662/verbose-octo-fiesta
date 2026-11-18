@@ -17,7 +17,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -44,7 +49,24 @@ fun HomeScreen(
     snapshotMessage: String,
     onSnapshotSave: (String) -> Unit,
     onSnapshotRestore: (String) -> Unit,
+    noticeDismissed: Boolean,
+    onDismissNotice: () -> Unit,
+    onOpenGuide: () -> Unit,
+    cleanupMessage: String,
+    onCleanup: (String) -> Unit,
 ) {
+    var pendingCleanup by remember { mutableStateOf<String?>(null) }
+
+    pendingCleanup?.let { action ->
+        ConfirmDialog(
+            action = action,
+            onDismiss = { pendingCleanup = null },
+            onConfirm = {
+                onCleanup(action)
+                pendingCleanup = null
+            },
+        )
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -63,6 +85,21 @@ fun HomeScreen(
         if (busy) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
+
+        if (!noticeDismissed) {
+            Section("公告") {
+                Text(
+                    "v0.3.0：支持导出 .sbox、导入到 Scene、快照 A/B。\n" +
+                        "导入前会自动备份原配置，随时可以在「清理与还原」里一键撤销。",
+                    fontSize = 12.sp,
+                )
+                TextButton(onClick = onDismissNotice) {
+                    Text("知道了，不再提示", fontSize = 12.sp)
+                }
+            }
+        }
+
+        TextButton(onClick = onOpenGuide) { Text("使用教程 →") }
 
         if (cap != null) {
             Section("权限层级") {
@@ -182,12 +219,57 @@ fun HomeScreen(
             }
         }
 
+        Section("清理与还原") {
+            Text(
+                "删除 App 内保存的配置包与快照；撤销导入可把 Scene 配置还原到导入前",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                TextButton(onClick = { pendingCleanup = "exports" }) { Text("清空导出包", fontSize = 12.sp) }
+                TextButton(onClick = { pendingCleanup = "snapshots" }) { Text("清空快照", fontSize = 12.sp) }
+            }
+            Button(
+                onClick = { pendingCleanup = "restore" },
+                enabled = cap?.canApplyConfig == true,
+            ) {
+                Text("撤销导入（还原备份）")
+            }
+            if (cleanupMessage.isNotBlank()) {
+                Text(cleanupMessage, fontSize = 12.sp)
+            }
+        }
+
         Text(
             "导出 / 导入 / 快照恢复需要 root；不 root 也能校验与预览。",
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+@Composable
+private fun ConfirmDialog(
+    action: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val (title, text) = when (action) {
+        "exports" -> "清空导出包" to "将删除 App 目录下所有导出的 .sbox 配置包，不可恢复。"
+        "snapshots" -> "清空快照" to "将删除所有调度快照，删除后无法再一键恢复。"
+        else -> "撤销导入" to "将把 Scene 的 profile.json 还原到最近一次导入前的备份。"
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(text, fontSize = 13.sp) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("确认") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        },
+    )
 }
 
 @Composable
