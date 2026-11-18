@@ -173,6 +173,9 @@ scenebox/
 
 说明 `.sbox` 的展开语义和校验规则在两条链路上是等价的，不是"两套实现各说各话"。
 
+v0.3.0 的 App 导出的包，`analysis.stats` 也已经是
+`{writes: 219, paths: 20, presets: 24, schemes: 4, ops: 37}`——与 Python 引擎逐项相同。
+
 ## 五、APK：已选 B 方案
 
 工程在 `android/`（Kotlin + Compose + Shizuku 13.1.5），构建方式见 `android/README.md`：
