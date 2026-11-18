@@ -22,6 +22,9 @@ import app.scenebox.core.CapabilityProbe
 import app.scenebox.core.DeviceFingerprint
 import app.scenebox.core.ShizukuBridge
 import app.scenebox.sbox.ExportService
+import app.scenebox.core.SceneFiles
+import app.scenebox.core.SnapshotService
+import app.scenebox.core.SuShell
 import app.scenebox.sbox.SboxBundle
 import app.scenebox.sbox.SboxStore
 import app.scenebox.ui.HomeScreen
@@ -62,6 +65,7 @@ private fun Root() {
     var exportMessage by remember { mutableStateOf("") }
     var files by remember { mutableStateOf(listOf<File>()) }
     var opened by remember { mutableStateOf<Pair<String, SboxBundle>?>(null) }
+    var snapshotMessage by remember { mutableStateOf("") }
 
     fun probe(tryRoot: Boolean) {
         lastTryRoot = tryRoot
@@ -78,6 +82,17 @@ private fun Root() {
 
     fun refreshFiles() {
         files = SboxStore.list(context)
+    }
+
+    suspend fun runSnapshot(save: Boolean, label: String) {
+        val capNow = capability ?: return
+        if (!capNow.canSnapshotRestore) return
+        val profile = withContext(Dispatchers.IO) { SceneFiles.profile(SuShell) }
+        val result = withContext(Dispatchers.IO) {
+            if (save) SnapshotService.save(context, SuShell, label, profile)
+            else SnapshotService.restore(context, SuShell, label)
+        }
+        snapshotMessage = result.message
     }
 
     suspend fun runExport() {
@@ -101,9 +116,10 @@ private fun Root() {
         refreshFiles()
     }
 
-    val autoExport = remember {
-        (context as? android.app.Activity)?.intent?.getBooleanExtra("export_now", false) ?: false
-    }
+    val activityIntent = remember { (context as? android.app.Activity)?.intent }
+    val autoExport = remember { activityIntent?.getBooleanExtra("export_now", false) ?: false }
+    val autoSnapSave = remember { activityIntent?.getStringExtra("snap_save") }
+    val autoSnapRestore = remember { activityIntent?.getStringExtra("snap_restore") }
 
     LaunchedEffect(Unit) {
         probe(prefs.getBoolean("try_root", false))
@@ -112,8 +128,13 @@ private fun Root() {
 
     // 测试/自动化入口：am start ... --ez export_now true
     LaunchedEffect(capability) {
-        if (autoExport && capability?.canExportScene == true && exportMessage.isBlank()) {
-            runExport()
+        val cap = capability ?: return@LaunchedEffect
+        if (autoExport && cap.canExportScene && exportMessage.isBlank()) runExport()
+        if (!autoSnapSave.isNullOrBlank() && cap.canSnapshotRestore && snapshotMessage.isBlank()) {
+            runSnapshot(true, autoSnapSave)
+        }
+        if (!autoSnapRestore.isNullOrBlank() && cap.canSnapshotRestore && snapshotMessage.isBlank()) {
+            runSnapshot(false, autoSnapRestore)
         }
     }
 
@@ -135,6 +156,9 @@ private fun Root() {
         },
         onProbeRoot = { probe(true) },
         onRefresh = { probe(lastTryRoot) },
+        snapshotMessage = snapshotMessage,
+        onSnapshotSave = { label -> scope.launch { runSnapshot(true, label) } },
+        onSnapshotRestore = { label -> scope.launch { runSnapshot(false, label) } },
         files = files,
         onOpenFile = { file ->
             runCatching { SboxStore.load(file) }.onSuccess { bundle ->

@@ -41,6 +41,9 @@ fun HomeScreen(
     onExport: () -> Unit,
     files: List<File>,
     onOpenFile: (File) -> Unit,
+    snapshotMessage: String,
+    onSnapshotSave: (String) -> Unit,
+    onSnapshotRestore: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -100,6 +103,33 @@ fun HomeScreen(
                 }
                 if (exportMessage.isNotBlank()) {
                     Text(exportMessage, fontSize = 12.sp)
+                }
+            }
+
+            Section("调度快照 A/B") {
+                Text(
+                    "A = 游戏调度，B = 日常默认。进游戏前恢复 A，退出后恢复 B。",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                for (label in listOf("A", "B")) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            if (label == "A") "快照 A · 游戏" else "快照 B · 日常",
+                            fontSize = 13.sp,
+                        )
+                        TextButton(
+                            onClick = { onSnapshotSave(label) },
+                            enabled = cap.canSnapshotRestore,
+                        ) { Text("保存", fontSize = 12.sp) }
+                        TextButton(
+                            onClick = { onSnapshotRestore(label) },
+                            enabled = cap.canSnapshotRestore,
+                        ) { Text("恢复", fontSize = 12.sp) }
+                    }
+                }
+                if (snapshotMessage.isNotBlank()) {
+                    Text(snapshotMessage, fontSize = 12.sp)
                 }
             }
 

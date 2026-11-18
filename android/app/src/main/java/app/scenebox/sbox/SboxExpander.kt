@@ -19,6 +19,7 @@ data class WriteOp(
 data class ProfileAnalysis(
     val risk: String,
     val writes: Int,
+    val ops: Int,
     val paths: Int,
     val presets: Int,
     val schemes: Int,
@@ -169,7 +170,8 @@ object SboxExpander {
 
         return ProfileAnalysis(
             risk = risk,
-            writes = writes.size,
+            writes = pathWrites.size,
+            ops = writes.size - pathWrites.size,
             paths = pathWrites.mapNotNull { it.path }.distinct().size,
             presets = (profile["presets"] as? JsonObject)?.size ?: 0,
             schemes = (profile["schemes"] as? JsonObject)?.size ?: 0,

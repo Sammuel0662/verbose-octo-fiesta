@@ -181,7 +181,7 @@ object SboxBuilder {
                         put("paths", analysis.paths)
                         put("presets", analysis.presets)
                         put("schemes", analysis.schemes)
-                        put("ops", 0)
+                        put("ops", analysis.ops)
                     }
                 }
             }
