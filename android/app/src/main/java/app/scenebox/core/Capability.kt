@@ -82,9 +82,16 @@ object CapabilityProbe {
         evidence += if (canReadScene) "可读 Scene profile.json" else "不可读 Scene 私有配置"
 
         // 5) dumpsys 取帧率（T1 起可用）
-        val dump = channel.exec("dumpsys SurfaceFlinger --latency 2>/dev/null | head -n 1")
-        val canDumpsys = dump.code == 0 && dump.has()
-        if (canDumpsys) evidence += "dumpsys SurfaceFlinger 可用"
+        //    坑：无权限时 dumpsys 会把 "Permission Denial: ..." 打到 stdout 且 exit=0，
+        //    只看"有没有输出"会假阳性。--latency 的第一行必须是纯数字（刷新周期 ns）。
+        val dump = channel.exec("dumpsys SurfaceFlinger --latency 2>&1 | head -n 1")
+        val dumpLine = dump.text().lineSequence().firstOrNull()?.trim() ?: ""
+        val canDumpsys = dump.code == 0 && dumpLine.isNotEmpty() && dumpLine.all { it.isDigit() }
+        if (canDumpsys) {
+            evidence += "dumpsys SurfaceFlinger 可用"
+        } else if (dumpLine.isNotEmpty()) {
+            evidence += "dumpsys 被拒：${dumpLine.take(38)}"
+        }
 
         // 6) 是否模块级 root（Magisk / KernelSU / APatch）
         val modules = channel.exec("ls -d /data/adb/magisk /data/adb/ksu /data/adb/ap 2>/dev/null")
@@ -97,7 +104,7 @@ object CapabilityProbe {
 
         val tier = when {
             canWriteSysfs && canReadScene -> if (moduleRoot.isNotEmpty()) Tier.MODULE else Tier.ROOT
-            canWriteSysfs || canReadKernel || canDumpsys -> Tier.SHIZUKU
+            canReadKernel || canDumpsys -> Tier.SHIZUKU
             else -> Tier.NONE
         }
 
