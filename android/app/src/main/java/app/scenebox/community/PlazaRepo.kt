@@ -30,7 +30,16 @@ object PlazaRepo {
 
     data class Guide(val title: String, val source: String, val url: String)
 
-    data class Index(val notice: String, val items: List<Item>, val guides: List<Guide>)
+    /** 档位分类：省电 / 均衡 / 性能 / 极致 */
+    data class Category(
+        val id: String,
+        val name: String,
+        val desc: String,
+        val slots: Int,
+        val items: List<Item>,
+    )
+
+    data class Index(val notice: String, val categories: List<Category>, val guides: List<Guide>)
 
     private const val REPO = "Sammuel0662/verbose-octo-fiesta"
     private val indexUrls = listOf(
@@ -83,18 +92,29 @@ object PlazaRepo {
         fun str(obj: JsonObject, key: String): String =
             (obj[key] as? JsonPrimitive)?.contentOrNull ?: ""
 
-        val items = (root["items"] as? JsonArray)
+        fun item(obj: JsonObject) = Item(
+            id = str(obj, "id"),
+            name = str(obj, "name"),
+            game = str(obj, "game"),
+            soc = str(obj, "soc"),
+            author = str(obj, "author"),
+            desc = str(obj, "desc"),
+            risk = str(obj, "risk"),
+            file = str(obj, "file"),
+        )
+
+        val categories = (root["categories"] as? JsonArray)
             ?.mapNotNull { it as? JsonObject }
-            ?.map {
-                Item(
-                    id = str(it, "id"),
-                    name = str(it, "name"),
-                    game = str(it, "game"),
-                    soc = str(it, "soc"),
-                    author = str(it, "author"),
-                    desc = str(it, "desc"),
-                    risk = str(it, "risk"),
-                    file = str(it, "file"),
+            ?.map { cat ->
+                val items = (cat["items"] as? JsonArray)
+                    ?.mapNotNull { it as? JsonObject }
+                    ?.map { item(it) } ?: emptyList()
+                Category(
+                    id = str(cat, "id"),
+                    name = str(cat, "name"),
+                    desc = str(cat, "desc"),
+                    slots = (cat["slots"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 3,
+                    items = items,
                 )
             } ?: emptyList()
 
@@ -103,6 +123,6 @@ object PlazaRepo {
             ?.map { Guide(str(it, "title"), str(it, "source"), str(it, "url")) }
             ?: emptyList()
 
-        return Index(str(root, "notice"), items, guides)
+        return Index(str(root, "notice"), categories, guides)
     }
 }

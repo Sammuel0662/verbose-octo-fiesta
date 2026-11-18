@@ -67,23 +67,33 @@ fun PlazaScreen(
                 Section("说明") { Text(index.notice, fontSize = 12.sp) }
             }
 
-            Section("配置包（${index.items.size}）") {
-                if (index.items.isEmpty()) {
-                    Text(
-                        "还没有可下载的配置。首版广场只放示例模板，真实方案需要投稿审核后上架。",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                for (item in index.items) {
-                    Text(item.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        "${item.game} · ${item.soc} · 作者 ${item.author} · 风险 ${item.risk}",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (item.desc.isNotBlank()) Text(item.desc, fontSize = 12.sp)
-                    Button(onClick = { onDownload(item) }) { Text("下载并预览") }
+            for (category in index.categories) {
+                Section("${category.name}（${category.items.size}/${category.slots}）") {
+                    if (category.desc.isNotBlank()) {
+                        Text(
+                            category.desc,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    for (item in category.items) {
+                        Text(item.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "${item.game} · ${item.soc} · ${item.author} · 风险 ${item.risk}",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (item.desc.isNotBlank()) Text(item.desc, fontSize = 12.sp)
+                        Button(onClick = { onDownload(item) }) { Text("下载并预览") }
+                    }
+                    val empty = (category.slots - category.items.size).coerceAtLeast(0)
+                    if (empty > 0) {
+                        Text(
+                            "还有 $empty 个位置待投稿（网上的热门方案目前只有截图，没有可下载文件）",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 

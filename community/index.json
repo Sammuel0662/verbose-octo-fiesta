@@ -1,20 +1,7 @@
 {
-  "version": 1,
-  "updated_at": "2026-11-18 15:48",
-  "notice": "首版广场：示例模板 + 公开教程。真实玩家方案需要投稿后审核上架。",
-  "items": [
-    {
-      "id": "demo-minimal",
-      "name": "示例模板 · 最小可用",
-      "game": "通用",
-      "soc": "SM8735",
-      "author": "SceneBox",
-      "desc": "教学用途，演示\"预览→校验→导入\"全流程，不是推荐参数",
-      "risk": "low",
-      "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/demo-minimal.sbox",
-      "source": "https://github.com/Sammuel0662/verbose-octo-fiesta"
-    }
-  ],
+  "version": 2,
+  "updated_at": "2026-11-18 15:53",
+  "notice": "首版广场：每个档位先放 1 个官方基线（按频点表生成，不是社区热门方案），其余 2 个位置留给玩家投稿。网上的\"热门方案\"目前只以截图/视频形式存在，没有可下载的文件。",
   "guides": [
     {
       "title": "YC调度 + Scene 系统调度控制教程",
@@ -45,6 +32,84 @@
       "title": "pgjh/fas-rs 帧感知调度",
       "source": "GitHub",
       "url": "https://github.com/pgjh/fas-rs"
+    }
+  ],
+  "categories": [
+    {
+      "id": "powersave",
+      "name": "省电",
+      "desc": "日常/挂机用的保守档：限制最高频，降低发热与耗电",
+      "slots": 3,
+      "items": [
+        {
+          "id": "baseline-powersave",
+          "name": "官方基线 · 省电",
+          "game": "通用",
+          "soc": "SM8735",
+          "author": "SceneBox",
+          "desc": "日常/挂机用的保守档：限制最高频，降低发热与耗电",
+          "risk": "low",
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/baseline-powersave.sbox",
+          "source": "https://github.com/Sammuel0662/verbose-octo-fiesta"
+        }
+      ]
+    },
+    {
+      "id": "balance",
+      "name": "均衡",
+      "desc": "兼顾帧率与温度的中间档",
+      "slots": 3,
+      "items": [
+        {
+          "id": "baseline-balance",
+          "name": "官方基线 · 均衡",
+          "game": "通用",
+          "soc": "SM8735",
+          "author": "SceneBox",
+          "desc": "兼顾帧率与温度的中间档",
+          "risk": "low",
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/baseline-balance.sbox",
+          "source": "https://github.com/Sammuel0662/verbose-octo-fiesta"
+        }
+      ]
+    },
+    {
+      "id": "performance",
+      "name": "性能",
+      "desc": "拉满可用频率，适合游戏场景",
+      "slots": 3,
+      "items": [
+        {
+          "id": "baseline-performance",
+          "name": "官方基线 · 性能",
+          "game": "通用",
+          "soc": "SM8735",
+          "author": "SceneBox",
+          "desc": "拉满可用频率，适合游戏场景",
+          "risk": "medium",
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/baseline-performance.sbox",
+          "source": "https://github.com/Sammuel0662/verbose-octo-fiesta"
+        }
+      ]
+    },
+    {
+      "id": "extreme",
+      "name": "极致",
+      "desc": "拉满频率并解除限制器，发热与锁核风险高",
+      "slots": 3,
+      "items": [
+        {
+          "id": "baseline-extreme",
+          "name": "官方基线 · 极致",
+          "game": "通用",
+          "soc": "SM8735",
+          "author": "SceneBox",
+          "desc": "拉满频率并解除限制器，发热与锁核风险高",
+          "risk": "high",
+          "file": "https://cdn.jsdelivr.net/gh/Sammuel0662/verbose-octo-fiesta@main/community/files/baseline-extreme.sbox",
+          "source": "https://github.com/Sammuel0662/verbose-octo-fiesta"
+        }
+      ]
     }
   ]
 }
