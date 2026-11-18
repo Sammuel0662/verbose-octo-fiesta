@@ -49,7 +49,8 @@ object CapabilityProbe {
         // 选通道：能 root 就用 root，其次 Shizuku，最后裸跑。
         // 超时必须给足：KernelSU/Magisk 首次授权会弹窗，用户还要看清再点"允许"，
         // 6 秒根本不够，之前就是这里把已授权的用户判成了没授权。
-        val root = if (tryRoot) SuShell.exec("id -u", 20L).text() == "0" else false
+        val suResult = if (tryRoot) SuShell.exec("id -u", 20L) else null
+        val root = suResult?.text() == "0"
         val granted = ShizukuBridge.granted()
         val channel: ShellChannel = when {
             root -> SuShell
@@ -57,8 +58,16 @@ object CapabilityProbe {
             else -> AppShell
         }
         evidence += "通道：${channel.name}"
-        if (tryRoot) {
-            evidence += if (root) "su 探测成功（uid 0）" else "su 探测失败：可能未授权或超时"
+        if (suResult != null) {
+            evidence += when {
+                root -> "su 探测成功（uid 0）"
+                // 实测：KernelSU 未授权时 su 会"正常退出但什么也不做"，
+                // 输出为空、exit=0，不会报错也不会弹窗。
+                suResult.code == 0 && !suResult.has() ->
+                    "su 无输出：未授权。请到 KernelSU/Magisk 管理器里勾选 SceneBox"
+                suResult.code == -1 -> "su 执行失败或超时（20s）"
+                else -> "su 返回异常结果：${suResult.text().take(40)}"
+            }
         }
 
         // 1) 读频点表（T0 就能读，0444）
