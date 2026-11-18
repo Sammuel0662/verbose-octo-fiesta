@@ -135,6 +135,7 @@ scenebox/
 | **导入前预览** | ✅ | 打开包显示 256 条展开、20 节点、4 档位 |
 | **强校验** | ✅ | FREQ_ABOVE 3 处、FREQ_UNKNOWN 5 处，与 Python 对同一文件结果一致 |
 | **调度快照 A/B** | ✅ | 快照 42 节点；改 `scaling_max_freq` 1785600→1516800 后恢复，值复原 |
+| **导入到 Scene** | ✅ | 把 `platform_name` 改成 `8GEN4-SBOXTEST` 的包导入，Scene 配置确实变成该值；自动生成备份；还原后 sha256 与原始一致 |
 | 一键检测权限 | ✅ | 单按钮跑完 su / Shizuku / Scene 可读性 / 写权限 |
 
 实现过程中踩到、且已经修掉的真机坑（都写进了代码注释）：
@@ -146,6 +147,17 @@ scenebox/
 4. **快照的 glob 不能加引号**，否则 `policy*` 不展开，只抓到 11 个节点（修好后 42 个）；
 5. **CI 签名**：AGP 不把 key 放 `~/.android/debug.keystore`，改为 keytool 生成并缓存固定 key，
    现在覆盖安装不再要求卸载（不会丢 root 授权）。
+
+### 导入的安全设计
+
+导入是整个工具唯一有破坏性的动作，所以做了五道闸：
+
+1. 导入前按**本机**重新跑一次强校验，`BLOCK` 直接拒绝（不信任包里自带的 analysis）；
+2. 强制备份 `profile.json.sboxbak-<时间戳>`，失败即中止；
+3. 先写 `profile.json.tmp` 再 `mv`，断电不会留半截文件；
+4. 复制原文件的**属主和权限**到新文件，避免 Scene 读不了；
+5. 只写 `files/profile.json`。`powercfg.xml` 是 SharedPreferences，Scene 进程持有内存态，
+   直接改会被覆盖甚至写坏，留到 v0.3 用 Scene 自己的入口做。
 
 ## 四点五、Kotlin 与 Python 引擎的一致性（实测）
 
