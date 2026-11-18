@@ -236,8 +236,12 @@ private fun Root() {
                         "snapshots" -> CleanupService.clearSnapshots(context)
                         "system" -> {
                             val fpNow = fingerprint
-                            if (fpNow == null) CleanupService.Result(false, "缺少本机指纹，无法还原")
-                            else SystemReset.apply(fpNow)
+                            if (fpNow == null) {
+                                CleanupService.Result(false, "缺少本机指纹，无法还原")
+                            } else {
+                                val r = SystemReset.apply(fpNow)
+                                CleanupService.Result(r.ok, r.message)
+                            }
                         }
                         else -> CleanupService.restoreLatestBackup()
                     }
