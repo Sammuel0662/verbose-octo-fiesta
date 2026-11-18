@@ -36,6 +36,7 @@ import app.scenebox.sbox.SboxBundle
 import app.scenebox.sbox.SboxStore
 import app.scenebox.ui.GuideScreen
 import app.scenebox.ui.HomeScreen
+import app.scenebox.ui.ImportSuccessDialog
 import app.scenebox.ui.PlazaScreen
 import app.scenebox.ui.SceneBoxTheme
 import app.scenebox.ui.StartupNoticeDialog
@@ -81,6 +82,8 @@ private fun Root() {
     var importBusy by remember { mutableStateOf(false) }
     var importMessage by remember { mutableStateOf("") }
     var cleanupMessage by remember { mutableStateOf("") }
+    var importOk by remember { mutableStateOf<ImportService.Result?>(null) }
+    var importOkName by remember { mutableStateOf("") }
     var showGuide by remember { mutableStateOf(false) }
     var showPlaza by remember { mutableStateOf(false) }
     var plazaIndex by remember { mutableStateOf<PlazaRepo.Index?>(null) }
@@ -136,6 +139,10 @@ private fun Root() {
         }
         importBusy = false
         importMessage = result.message
+        if (result.ok) {
+            importOkName = bundle.meta.name
+            importOk = result
+        }
     }
 
     suspend fun runExport() {
@@ -209,6 +216,26 @@ private fun Root() {
 
     if (!noticeAccepted) {
         StartupNoticeDialog(onAccept = { noticeAccepted = true })
+    }
+
+    importOk?.let { result ->
+        ImportSuccessDialog(
+            configName = importOkName,
+            sizeText = result.sizeText,
+            backupName = result.backupName,
+            onDone = {
+                importOk = null
+                opened = null
+            },
+            onRollback = {
+                importOk = null
+                opened = null
+                scope.launch {
+                    val r = withContext(Dispatchers.IO) { CleanupService.restoreLatestBackup() }
+                    cleanupMessage = r.message
+                }
+            },
+        )
     }
 
     if (showGuide) {

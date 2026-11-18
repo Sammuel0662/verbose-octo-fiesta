@@ -26,7 +26,12 @@ object ImportService {
     private const val TARGET = "/data/data/com.omarea.vtools/files/profile.json"
     private val pretty = Json { prettyPrint = true; prettyPrintIndent = "  " }
 
-    data class Result(val ok: Boolean, val message: String)
+    data class Result(
+        val ok: Boolean,
+        val message: String,
+        val backupName: String = "",
+        val sizeText: String = "",
+    )
 
     fun apply(
         bundle: SboxBundle,
@@ -73,8 +78,9 @@ object ImportService {
 
         return Result(
             ok = true,
-            message = "已导入到 Scene（${size} 字节）\n原配置已备份：profile.json.sboxbak-$stamp\n" +
-                "提示：Scene 需要重新应用档位或重启后才完全生效",
+            message = "已导入到 Scene（${size} 字节）",
+            backupName = "profile.json.sboxbak-$stamp",
+            sizeText = "$size",
         )
     }
 }
