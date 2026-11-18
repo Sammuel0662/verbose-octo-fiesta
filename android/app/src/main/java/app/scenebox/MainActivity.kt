@@ -190,7 +190,8 @@ private fun Root() {
     }
 
     // 自动化入口：先 open_file 打开包，再 import_now 直接导入
-    LaunchedEffect(opened) {
+    // 注意 key 必须带上 capability：能力探测晚于文件加载时，只监听 opened 会漏掉
+    LaunchedEffect(opened, capability) {
         val current = opened ?: return@LaunchedEffect
         if (autoImport && importMessage.isBlank() && capability?.canApplyConfig == true) {
             runImport(current.second)
