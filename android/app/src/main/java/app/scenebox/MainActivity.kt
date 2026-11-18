@@ -28,6 +28,7 @@ import app.scenebox.sbox.CleanupService
 import app.scenebox.sbox.ImportService
 import app.scenebox.core.SceneFiles
 import app.scenebox.core.SnapshotService
+import app.scenebox.core.SystemReset
 import app.scenebox.core.SuShell
 import app.scenebox.sbox.SboxBundle
 import app.scenebox.sbox.SboxStore
@@ -155,6 +156,7 @@ private fun Root() {
     val autoSnapRestore = remember { activityIntent?.getStringExtra("snap_restore") }
     val autoOpen = remember { activityIntent?.getStringExtra("open_file") }
     val autoImport = remember { activityIntent?.getBooleanExtra("import_now", false) ?: false }
+    val autoSystemReset = remember { activityIntent?.getBooleanExtra("system_reset", false) ?: false }
 
     LaunchedEffect(Unit) {
         probe(prefs.getBoolean("try_root", false))
@@ -182,6 +184,12 @@ private fun Root() {
     LaunchedEffect(capability) {
         val cap = capability ?: return@LaunchedEffect
         if (autoExport && cap.canExportScene && exportMessage.isBlank()) runExport()
+        if (autoSystemReset && cap.canSnapshotRestore && cleanupMessage.isBlank()) {
+            val fpNow = fingerprint
+            if (fpNow != null) {
+                cleanupMessage = withContext(Dispatchers.IO) { SystemReset.apply(fpNow).message }
+            }
+        }
         if (!autoSnapSave.isNullOrBlank() && cap.canSnapshotRestore && snapshotMessage.isBlank()) {
             runSnapshot(true, autoSnapSave)
         }
@@ -226,6 +234,11 @@ private fun Root() {
                     when (action) {
                         "downloads" -> CleanupService.clearDownloads(context)
                         "snapshots" -> CleanupService.clearSnapshots(context)
+                        "system" -> {
+                            val fpNow = fingerprint
+                            if (fpNow == null) CleanupService.Result(false, "缺少本机指纹，无法还原")
+                            else SystemReset.apply(fpNow)
+                        }
                         else -> CleanupService.restoreLatestBackup()
                     }
                 }

@@ -250,6 +250,12 @@ fun HomeScreen(
                 TextButton(onClick = { pendingCleanup = "snapshots" }) { Text("清空快照", fontSize = 12.sp) }
             }
             Button(
+                onClick = { pendingCleanup = "system" },
+                enabled = cap?.canSnapshotRestore == true,
+            ) {
+                Text("还原系统配置（默认调度）")
+            }
+            Button(
                 onClick = { pendingCleanup = "restore" },
                 enabled = cap?.canApplyConfig == true,
             ) {
@@ -277,6 +283,8 @@ private fun ConfirmDialog(
     val (title, text) = when (action) {
         "downloads" -> "清空下载的配置" to "将删除所有从 SceneBox 下载/接收的配置包（自己导出的会保留）。"
         "snapshots" -> "清空快照" to "将删除所有调度快照，删除后无法再一键恢复。"
+        "system" -> "还原系统配置" to "将把 CPU 频率上下限和调度开关写回系统默认值，" +
+            "会覆盖当前正在生效的调参。"
         else -> "撤销导入" to "将把 Scene 的 profile.json 还原到最近一次导入前的备份。"
     }
     AlertDialog(
