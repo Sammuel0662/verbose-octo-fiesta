@@ -57,7 +57,8 @@ object SnapshotService {
     /** 收集要跟踪的节点：固定清单按 glob 展开 + 方案 alias 直连节点 */
     private fun trackedPaths(channel: ShellChannel, profile: JsonObject?): List<String> {
         val paths = linkedSetOf<String>()
-        val globCmd = baseGlobs.joinToString(" ") { shellQuote(it) }
+        // 注意：这里不能加引号，否则 shell 不会展开 policy* 这类通配符
+        val globCmd = baseGlobs.joinToString(" ")
         val result = channel.exec("ls -d $globCmd 2>/dev/null")
         if (result.has()) {
             result.text().lineSequence().map { it.trim() }.filter { it.startsWith("/") }
