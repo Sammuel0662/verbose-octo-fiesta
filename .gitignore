@@ -15,5 +15,7 @@ captures/
 out/
 data/
 __pycache__/
+# 本机导出的配置包不入库；但广场上架的包要提交
 *.sbox
+!community/files/*.sbox
 scenebox-src.zip

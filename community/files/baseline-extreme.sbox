@@ -1,0 +1,143 @@
+{
+  "format": "sbox",
+  "format_version": 1,
+  "id": "sbox_seed_extreme",
+  "meta": {
+    "name": "官方基线 · 极致",
+    "author": "SceneBox",
+    "description": "拉满频率并解除限制器，发热与锁核风险高",
+    "created_at": "2026-11-18T15:48:02+0800",
+    "generator": "SceneBox 0.3.0 (seed)",
+    "tags": {
+      "game": [
+        "通用"
+      ],
+      "style": [
+        "extreme"
+      ],
+      "soc": [
+        "SM8735"
+      ],
+      "device": [
+        "25053RT47C"
+      ]
+    }
+  },
+  "target": {
+    "device": {
+      "brand": "Redmi",
+      "model": "25053RT47C",
+      "device": "onyx",
+      "manufacturer": "Xiaomi"
+    },
+    "soc": {
+      "model": "SM8735",
+      "platform": "sun",
+      "manufacturer": "QTI"
+    },
+    "os": {
+      "android": "16",
+      "sdk": "36",
+      "rom": "",
+      "kernel": ""
+    },
+    "scene": {
+      "daemon": "",
+      "cloud_profile_version": 0,
+      "working_mode": "root"
+    },
+    "cpu": {
+      "policies": {
+        "policy0": {
+          "min": 364800,
+          "max": 2016000,
+          "avail": [
+            364800,
+            748800,
+            1190400,
+            1785600,
+            2016000
+          ]
+        }
+      }
+    }
+  },
+  "payload": {
+    "components": {
+      "profile": true,
+      "app_policy": false,
+      "games": false,
+      "refresh_rate": false,
+      "per_app": false,
+      "thermal": false
+    },
+    "profile": {
+      "platform": "sun",
+      "platform_name": "8GEN4",
+      "alias": {
+        "cpu_max_0": "/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq",
+        "cpu_min_0": "/sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq"
+      },
+      "presets": {
+        "active": [
+          [
+            "@values",
+            "max_freq",
+            "2016000"
+          ],
+          [
+            "@values",
+            "min_freq",
+            "1785600"
+          ]
+        ],
+        "min_freq": [
+          [
+            "$cpu_min_0"
+          ]
+        ],
+        "max_freq": [
+          [
+            "$cpu_max_0"
+          ]
+        ]
+      },
+      "schemes": {
+        "balance": {
+          "app": [
+            [
+              "@preset",
+              "active"
+            ]
+          ]
+        }
+      }
+    },
+    "app_policy": {},
+    "games": [],
+    "refresh_rate": [],
+    "per_app": [],
+    "thermal": []
+  },
+  "analysis": {
+    "risk": "high",
+    "items": [
+      {
+        "level": "high",
+        "code": "SEED",
+        "message": "含限制器解除，谨慎导入"
+      }
+    ],
+    "stats": {
+      "writes": 2,
+      "ops": 0,
+      "paths": 2,
+      "presets": 3,
+      "schemes": 1
+    }
+  },
+  "checksum": {
+    "algo": "sha256",
+    "value": "b7c68fc32110ba5864ddb471285735135defdb27d1dbb70e298638bcfc0622e1"
+  }
+}

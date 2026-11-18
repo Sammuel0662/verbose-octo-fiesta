@@ -1,0 +1,211 @@
+{
+  "format": "sbox",
+  "format_version": 1,
+  "id": "sbox_plaza_perf-1",
+  "meta": {
+    "name": "骁龙8通用竞技性能｜主播通用模板",
+    "author": "社区投稿",
+    "description": "schedutil + 放开到硬件上限，空闲自动回落；大核下限抬到 1GHz 常驻。",
+    "created_at": "2026-11-18T16:57:56+0800",
+    "generator": "SceneBox 0.3.0 (plaza)",
+    "tags": {
+      "game": [
+        "通用"
+      ],
+      "style": [
+        "balance"
+      ],
+      "soc": [
+        "骁龙8全系"
+      ],
+      "device": [
+        "通用"
+      ]
+    }
+  },
+  "target": {
+    "device": {
+      "brand": "Redmi",
+      "model": "25053RT47C",
+      "device": "onyx",
+      "manufacturer": "Xiaomi"
+    },
+    "soc": {
+      "model": "SM8735",
+      "platform": "sun",
+      "manufacturer": "QTI"
+    },
+    "os": {
+      "android": "16",
+      "sdk": "36",
+      "rom": "",
+      "kernel": ""
+    },
+    "scene": {
+      "daemon": "",
+      "cloud_profile_version": 0,
+      "working_mode": "root"
+    },
+    "cpu": {
+      "policies": {
+        "policy0": {
+          "min": 364800,
+          "max": 2016000,
+          "avail": [
+            364800,
+            1190400,
+            1516800,
+            1785600,
+            1900800,
+            2016000
+          ]
+        },
+        "policy2": {
+          "min": 480000,
+          "max": 3014400,
+          "avail": [
+            480000,
+            1824000,
+            1920000,
+            2323200,
+            2438400,
+            2841600,
+            3014400
+          ]
+        },
+        "policy5": {
+          "min": 480000,
+          "max": 2803200,
+          "avail": [
+            480000,
+            1728000,
+            1824000,
+            2169600,
+            2246400,
+            2707200,
+            2803200
+          ]
+        },
+        "policy7": {
+          "min": 480000,
+          "max": 3206400,
+          "avail": [
+            480000,
+            1920000,
+            2054400,
+            2515200,
+            2611200,
+            2956800,
+            3206400
+          ]
+        }
+      }
+    }
+  },
+  "payload": {
+    "components": {
+      "profile": true,
+      "app_policy": false,
+      "games": false,
+      "refresh_rate": false,
+      "per_app": false,
+      "thermal": false
+    },
+    "profile": {
+      "platform": "sun",
+      "platform_name": "8GEN4",
+      "alias": {
+        "cpu_max_0": "/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq",
+        "cpu_min_0": "/sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq",
+        "cpu_max_2": "/sys/devices/system/cpu/cpufreq/policy2/scaling_max_freq",
+        "cpu_min_2": "/sys/devices/system/cpu/cpufreq/policy2/scaling_min_freq",
+        "cpu_max_5": "/sys/devices/system/cpu/cpufreq/policy5/scaling_max_freq",
+        "cpu_min_5": "/sys/devices/system/cpu/cpufreq/policy5/scaling_min_freq",
+        "cpu_max_7": "/sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq",
+        "cpu_min_7": "/sys/devices/system/cpu/cpufreq/policy7/scaling_min_freq",
+        "gpu_max": "/sys/class/kgsl/kgsl-3d0/devfreq/max_freq",
+        "sched_boost": "/proc/sys/walt/sched_boost",
+        "perfmgr": "/sys/module/perfmgr/parameters/perfmgr_enable",
+        "glk": "/sys/module/migt/parameters/glk_disable",
+        "cpufreq_limit": "/proc/game_opt/disable_cpufreq_limit"
+      },
+      "presets": {},
+      "schemes": {
+        "balance": {
+          "app": [
+            [
+              "@governor",
+              "schedutil"
+            ],
+            [
+              "$cpu_max_0",
+              "2016000"
+            ],
+            [
+              "$cpu_min_0",
+              "748800"
+            ],
+            [
+              "$cpu_max_2",
+              "3014400"
+            ],
+            [
+              "$cpu_min_2",
+              "1017600"
+            ],
+            [
+              "$cpu_max_5",
+              "2803200"
+            ],
+            [
+              "$cpu_min_5",
+              "1017600"
+            ],
+            [
+              "$cpu_max_7",
+              "2956800"
+            ],
+            [
+              "$cpu_min_7",
+              "1017600"
+            ],
+            [
+              "$gpu_max",
+              "763000000"
+            ],
+            [
+              "$sched_boost",
+              "0"
+            ]
+          ]
+        }
+      }
+    },
+    "app_policy": {},
+    "games": [],
+    "refresh_rate": [],
+    "per_app": [],
+    "thermal": []
+  },
+  "analysis": {
+    "risk": "medium",
+    "items": [
+      {
+        "level": "high",
+        "code": "PLAZA",
+        "message": "无散热机型会发热降频，不会锁核"
+      }
+    ],
+    "stats": {
+      "writes": 11,
+      "ops": 0,
+      "paths": 13,
+      "presets": 0,
+      "schemes": 1
+    }
+  },
+  "checksum": {
+    "algo": "sha256",
+    "value": "daa8fb15eaf22c5a5459d146aa0aa3d68673a20ad79b2c7777093ac547c1839d"
+  }
+}
