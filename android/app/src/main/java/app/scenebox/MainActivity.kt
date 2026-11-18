@@ -30,7 +30,7 @@ import app.scenebox.sbox.CleanupService
 import app.scenebox.sbox.ImportService
 import app.scenebox.core.SceneFiles
 import app.scenebox.core.SnapshotService
-import app.scenebox.core.PatchService
+import app.scenebox.core.ProfileService
 import app.scenebox.core.SystemReset
 import app.scenebox.core.SuShell
 import app.scenebox.sbox.SboxBundle
@@ -204,8 +204,14 @@ private fun Root() {
         val item = index.categories.firstOrNull()?.items?.firstOrNull() ?: return@LaunchedEffect
         autoApplied = true
         plazaMessage = "正在应用 ${item.name}…"
-        val result = withContext(Dispatchers.IO) { PatchService.apply(item.patch, fpNow) }
-        plazaMessage = if (result.ok) "✅ ${result.message}" else "❌ ${result.message}"
+        val raw = withContext(Dispatchers.IO) { SceneFiles.profile(SuShell) }
+        val patched = raw?.let { ProfileService.patch(it, item.patch, fpNow) }
+        val written = patched?.let { ImportService.writeProfile(it.profile) }
+        plazaMessage = when {
+            patched == null -> "❌ 读不到 Scene 的 profile（需要 root）"
+            written == null || !written.ok -> "❌ ${written?.message ?: "写入失败"}"
+            else -> "✅ 已写入 Scene 方案：${patched.changes.take(4).joinToString("、")}"
+        }
     }
 
     LaunchedEffect(exports, downloads) {
@@ -276,12 +282,20 @@ private fun Root() {
                 plazaApplying = true
                 plazaMessage = "正在应用 ${item.name}…"
                 scope.launch {
-                    val result = withContext(Dispatchers.IO) {
-                        if (fpNow == null) PatchService.Result(false, "缺少本机频点表")
-                        else PatchService.apply(item.patch, fpNow)
+                    val message = withContext(Dispatchers.IO) {
+                        if (fpNow == null) return@withContext "❌ 缺少本机频点表"
+                        val raw = SceneFiles.profile(SuShell)
+                            ?: return@withContext "❌ 读不到 Scene 的 profile（需要 root）"
+                        val patched = ProfileService.patch(raw, item.patch, fpNow)
+                        if (patched.changes.isEmpty()) return@withContext "❌ 没有可应用的项"
+                        val written = ImportService.writeProfile(patched.profile)
+                        if (!written.ok) return@withContext "❌ ${written.message}"
+                        "✅ 已写入 Scene 方案：${patched.changes.take(4).joinToString("、")}" +
+                            "\n原配置已备份：${written.backupName}\n" +
+                            "回到 Scene 切换一次档位即可生效"
                     }
                     plazaApplying = false
-                    plazaMessage = if (result.ok) "✅ ${result.message}" else "❌ ${result.message}"
+                    plazaMessage = message
                 }
             },
             onDownload = { item ->

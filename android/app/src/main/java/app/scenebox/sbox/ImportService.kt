@@ -54,6 +54,11 @@ object ImportService {
             }
         }
 
+        return writeProfile(profile)
+    }
+
+    /** 备份 + 原子写回 Scene 的 profile.json，供导入和"广场补丁"共用 */
+    fun writeProfile(profile: JsonObject): Result {
         val text = pretty.encodeToString(JsonObject.serializer(), profile)
         val base64 = android.util.Base64.encodeToString(text.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
         val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())

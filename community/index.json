@@ -1,7 +1,7 @@
 {
-  "version": 4,
-  "updated_at": "2026-11-18 17:29",
-  "notice": "广场方案是「参数补丁」：按百分比写 sysfs，用你本机的频点表换算，不覆盖 Scene 的 profile.json。应用后可用「还原系统配置」一键回退。",
+  "version": 5,
+  "updated_at": "2026-11-18 18:28",
+  "notice": "广场方案以「补丁」形式追加进 Scene 的 profile：保留你原有的 features/apps/games 和全部档位，只在 alias 里补本机真实 policy 路径、在 balance 档位末尾追加写入。应用后会先备份原 profile。",
   "categories": [
     {
       "id": "save",
@@ -15,7 +15,7 @@
           "game": "通用",
           "soc": "骁龙8全系",
           "author": "社区投稿",
-          "desc": "schedutil 动态调频，四个簇上限统一压到 60%，大核闲置自动降频。",
+          "desc": "schedutil 动态调频，四簇上限统一压到 50%，大核闲置自动降频。",
           "risk": "low",
           "patch": [
             {
@@ -24,19 +24,19 @@
             },
             {
               "k": "cpu_max_pct_p0",
-              "v": "60"
+              "v": "50"
             },
             {
               "k": "cpu_max_pct_p1",
-              "v": "60"
+              "v": "50"
             },
             {
               "k": "cpu_max_pct_p2",
-              "v": "60"
+              "v": "50"
             },
             {
               "k": "cpu_max_pct_p3",
-              "v": "60"
+              "v": "50"
             },
             {
               "k": "sched_boost",
@@ -54,24 +54,24 @@
           "game": "通用",
           "soc": "骁龙8全系",
           "author": "社区投稿",
-          "desc": "不改 governor，只把上限压到 65% 并关闭 sched_boost，减少空载高频。",
+          "desc": "不改 governor，只把上限压到 68% 并关闭 sched_boost，减少空载高频。",
           "risk": "low",
           "patch": [
             {
               "k": "cpu_max_pct_p0",
-              "v": "65"
+              "v": "68"
             },
             {
               "k": "cpu_max_pct_p1",
-              "v": "65"
+              "v": "68"
             },
             {
               "k": "cpu_max_pct_p2",
-              "v": "65"
+              "v": "68"
             },
             {
               "k": "cpu_max_pct_p3",
-              "v": "65"
+              "v": "68"
             },
             {
               "k": "sched_boost",
@@ -97,7 +97,7 @@
           "game": "通用",
           "soc": "骁龙8全系",
           "author": "社区投稿",
-          "desc": "schedutil + 上限 80%，不锁死频率，高低负载自动切换。",
+          "desc": "schedutil + 上限 78%，不锁死频率，高低负载自动切换。",
           "risk": "medium",
           "patch": [
             {
@@ -106,19 +106,19 @@
             },
             {
               "k": "cpu_max_pct_p0",
-              "v": "80"
+              "v": "78"
             },
             {
               "k": "cpu_max_pct_p1",
-              "v": "80"
+              "v": "78"
             },
             {
               "k": "cpu_max_pct_p2",
-              "v": "80"
+              "v": "78"
             },
             {
               "k": "cpu_max_pct_p3",
-              "v": "80"
+              "v": "78"
             },
             {
               "k": "sched_boost",
@@ -136,24 +136,24 @@
           "game": "通用",
           "soc": "骁龙8全系",
           "author": "社区投稿",
-          "desc": "不改 governor，上限 78% 并关闭 sched_boost，减少频率来回跳动。",
+          "desc": "不改 governor，上限放到 88% 并关闭 sched_boost，比均衡 1 号更放得开。",
           "risk": "low",
           "patch": [
             {
               "k": "cpu_max_pct_p0",
-              "v": "78"
+              "v": "88"
             },
             {
               "k": "cpu_max_pct_p1",
-              "v": "78"
+              "v": "88"
             },
             {
               "k": "cpu_max_pct_p2",
-              "v": "78"
+              "v": "88"
             },
             {
               "k": "cpu_max_pct_p3",
-              "v": "78"
+              "v": "88"
             },
             {
               "k": "sched_boost",
@@ -179,7 +179,7 @@
           "game": "通用",
           "soc": "骁龙8全系",
           "author": "社区投稿",
-          "desc": "schedutil + 上限放到硬件满格，大核下限抬到 30% 保持响应。",
+          "desc": "schedutil + 上限放到硬件满格，小核下限压到 20% 省电、大核保持响应。",
           "risk": "medium",
           "patch": [
             {
@@ -204,19 +204,19 @@
             },
             {
               "k": "cpu_min_pct_p0",
-              "v": "30"
+              "v": "20"
             },
             {
               "k": "cpu_min_pct_p1",
-              "v": "30"
+              "v": "20"
             },
             {
               "k": "cpu_min_pct_p2",
-              "v": "30"
+              "v": "20"
             },
             {
               "k": "cpu_min_pct_p3",
-              "v": "30"
+              "v": "20"
             },
             {
               "k": "sched_boost",
@@ -234,7 +234,7 @@
           "game": "通用",
           "soc": "骁龙8全系",
           "author": "社区投稿",
-          "desc": "不改 governor，上限 95% 并关闭 sched_boost，压低频率波动让帧率更平。",
+          "desc": "不改 governor，上限 95%、抬高中核下限到 40%，长局更稳。",
           "risk": "medium",
           "patch": [
             {
@@ -252,6 +252,22 @@
             {
               "k": "cpu_max_pct_p3",
               "v": "95"
+            },
+            {
+              "k": "cpu_min_pct_p0",
+              "v": "40"
+            },
+            {
+              "k": "cpu_min_pct_p1",
+              "v": "40"
+            },
+            {
+              "k": "cpu_min_pct_p2",
+              "v": "40"
+            },
+            {
+              "k": "cpu_min_pct_p3",
+              "v": "40"
             },
             {
               "k": "sched_boost",
@@ -320,7 +336,7 @@
           "game": "通用",
           "soc": "骁龙8全系",
           "author": "社区投稿",
-          "desc": "schedutil + 上调下限到 50%，压住频率抖动提升跟枪手感；不解限制器。",
+          "desc": "schedutil + 四簇下限抬到 60%，压住频率抖动提升跟枪手感；不解限制器。",
           "risk": "high",
           "patch": [
             {
@@ -345,19 +361,19 @@
             },
             {
               "k": "cpu_min_pct_p0",
-              "v": "50"
+              "v": "60"
             },
             {
               "k": "cpu_min_pct_p1",
-              "v": "50"
+              "v": "60"
             },
             {
               "k": "cpu_min_pct_p2",
-              "v": "50"
+              "v": "60"
             },
             {
               "k": "cpu_min_pct_p3",
-              "v": "50"
+              "v": "60"
             },
             {
               "k": "sched_boost",
