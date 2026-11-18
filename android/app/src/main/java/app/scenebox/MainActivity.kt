@@ -184,25 +184,28 @@ private fun Root() {
 
     // 测试/自动化入口：am start ... --ez export_now true
     // 自动化：--ez apply_first true 应用广场第一个方案（便于验证）
-    LaunchedEffect(autoApplyFirst, capability, plazaIndex) {
-        if (autoApplyFirst && !autoApplied && capability?.canWriteSysfs == true) {
-            val item = plazaIndex?.categories?.firstOrNull()?.items?.firstOrNull()
-            if (item != null) {
-                autoApplied = true
-                val fpNow = fingerprint
-                plazaMessage = "正在应用 ${item.name}…"
-                val result = withContext(Dispatchers.IO) {
-                    if (fpNow == null) PatchService.Result(false, "缺少本机频点表")
-                    else PatchService.apply(item.patch, fpNow)
-                }
-                plazaMessage = if (result.ok) "✅ ${result.message}" else "❌ ${result.message}"
-            } else if (plazaIndex == null && !plazaLoading) {
+    // 依赖 capability + fingerprint + plazaIndex 三者都就绪，缺一个就直接返回，
+    // 不提前置位 autoApplied，避免"第一条到达时抢跑、后面不再重试"。
+    LaunchedEffect(autoApplyFirst, capability, fingerprint, plazaIndex) {
+        if (!autoApplyFirst || autoApplied) return@LaunchedEffect
+        if (capability?.canWriteSysfs != true) return@LaunchedEffect
+        val fpNow = fingerprint ?: return@LaunchedEffect
+        val index = plazaIndex
+        if (index == null) {
+            if (!plazaLoading) {
                 plazaLoading = true
                 val fetched = withContext(Dispatchers.IO) { runCatching { PlazaRepo.fetch() } }
                 plazaLoading = false
                 fetched.onSuccess { plazaIndex = it }
+                    .onFailure { plazaMessage = "❌ ${it.message ?: "索引加载失败"}" }
             }
+            return@LaunchedEffect
         }
+        val item = index.categories.firstOrNull()?.items?.firstOrNull() ?: return@LaunchedEffect
+        autoApplied = true
+        plazaMessage = "正在应用 ${item.name}…"
+        val result = withContext(Dispatchers.IO) { PatchService.apply(item.patch, fpNow) }
+        plazaMessage = if (result.ok) "✅ ${result.message}" else "❌ ${result.message}"
     }
 
     LaunchedEffect(exports, downloads) {
