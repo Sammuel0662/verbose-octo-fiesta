@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SceneBox</string>
+    <string name="tagline">Scene 配置分发 · 校验 · 快照</string>
+</resources>

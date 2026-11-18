@@ -1,0 +1,19 @@
+# Gradle / Android
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin
+*.hprof
+
+# SceneBox 本地产物（含本机设备信息/配置，不要提交）
+out/
+data/
+__pycache__/
+*.sbox
+scenebox-src.zip

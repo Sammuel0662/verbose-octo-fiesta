@@ -1,0 +1,172 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://scenebox.app/spec/sbox-v1.schema.json",
+  "title": "SceneBox config bundle",
+  "description": "Scene 调度配置的标准交换格式。文件扩展名 .sbox，内容为 UTF-8 JSON。",
+  "type": "object",
+  "required": ["format", "format_version", "id", "meta", "target", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "format": { "const": "sbox" },
+    "format_version": { "type": "integer", "minimum": 1, "maximum": 1 },
+    "id": { "type": "string", "pattern": "^sbox_[0-9]{8}_[0-9]{6}_[0-9a-f]{6}$" },
+    "checksum": {
+      "type": "object",
+      "description": "对除 checksum 外全部字段做 canonical JSON（sort_keys、无空格、UTF-8）后的 sha256",
+      "properties": {
+        "algo": { "const": "sha256" },
+        "value": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "required": ["algo", "value"]
+    },
+    "meta": {
+      "type": "object",
+      "required": ["name", "created_at", "generator"],
+      "properties": {
+        "name": { "type": "string", "maxLength": 60 },
+        "author": { "type": "string", "maxLength": 40 },
+        "description": { "type": "string", "maxLength": 500 },
+        "created_at": { "type": "string" },
+        "generator": { "type": "string" },
+        "tags": {
+          "type": "object",
+          "properties": {
+            "game": { "type": "array", "items": { "type": "string" } },
+            "style": { "type": "array", "items": { "enum": ["powersave", "balance", "performance", "fast", "cool", "custom"] } },
+            "soc": { "type": "array", "items": { "type": "string" } },
+            "device": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "description": "适配指纹。导入时逐项与本机比对，是拦截的核心依据。",
+      "properties": {
+        "device": {
+          "type": "object",
+          "properties": {
+            "brand": { "type": "string" },
+            "model": { "type": "string" },
+            "device": { "type": "string" },
+            "manufacturer": { "type": "string" }
+          }
+        },
+        "soc": {
+          "type": "object",
+          "properties": {
+            "model": { "type": "string", "description": "ro.soc.model，如 SM8735" },
+            "platform": { "type": "string", "description": "ro.board.platform，如 sun" },
+            "manufacturer": { "type": "string" }
+          }
+        },
+        "os": {
+          "type": "object",
+          "properties": {
+            "android": { "type": "string" },
+            "sdk": { "type": "string" },
+            "rom": { "type": "string" },
+            "kernel": { "type": "string" }
+          }
+        },
+        "scene": {
+          "type": "object",
+          "properties": {
+            "package": { "const": "com.omarea.vtools" },
+            "daemon": { "type": "string" },
+            "cloud_profile_version": { "type": ["integer", "string"] },
+            "working_mode": { "type": "string" }
+          }
+        },
+        "cpu": {
+          "type": "object",
+          "properties": {
+            "policies": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "required": ["min", "max", "avail"],
+                "properties": {
+                  "min": { "type": "integer" },
+                  "max": { "type": "integer" },
+                  "avail": { "type": "array", "items": { "type": "integer" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "required": ["components"],
+      "properties": {
+        "components": {
+          "type": "object",
+          "description": "哪些组件被包含。导入端只处理 true 的项。",
+          "properties": {
+            "profile": { "type": "boolean" },
+            "app_policy": { "type": "boolean" },
+            "games": { "type": "boolean" },
+            "refresh_rate": { "type": "boolean" },
+            "per_app": { "type": "boolean" },
+            "thermal": { "type": "boolean" }
+          }
+        },
+        "profile": {
+          "type": ["object", "null"],
+          "description": "Scene files/profile.json 原文，含 alias/presets/schemes。"
+        },
+        "app_policy": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "package/Activity -> powersave|balance|performance|fast|igoned"
+        },
+        "games": { "type": "array", "items": { "type": "string" } },
+        "refresh_rate": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["package", "min", "max"],
+            "properties": {
+              "package": { "type": "string" },
+              "min": { "type": "integer" },
+              "max": { "type": "integer" }
+            }
+          }
+        },
+        "per_app": { "type": "array", "items": { "type": "object" } },
+        "thermal": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "description": "生成时对方案的静态风险分析，导入端会用它决定是否需要二次确认。",
+      "properties": {
+        "risk": { "enum": ["low", "medium", "high", "unknown"] },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "level": { "enum": ["info", "warn", "medium", "high", "block"] },
+              "code": { "type": "string" },
+              "message": { "type": "string" }
+            },
+            "required": ["level", "code", "message"]
+          }
+        },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "writes": { "type": "integer" },
+            "paths": { "type": "integer" },
+            "presets": { "type": "integer" },
+            "schemes": { "type": "integer" },
+            "ops": { "type": "integer" }
+          }
+        }
+      }
+    }
+  }
+}
