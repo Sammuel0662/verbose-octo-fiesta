@@ -22,6 +22,7 @@ import app.scenebox.core.CapabilityProbe
 import app.scenebox.core.DeviceFingerprint
 import app.scenebox.core.ShizukuBridge
 import app.scenebox.sbox.ExportService
+import app.scenebox.sbox.ImportService
 import app.scenebox.core.SceneFiles
 import app.scenebox.core.SnapshotService
 import app.scenebox.core.SuShell
@@ -66,6 +67,8 @@ private fun Root() {
     var files by remember { mutableStateOf(listOf<File>()) }
     var opened by remember { mutableStateOf<Pair<String, SboxBundle>?>(null) }
     var snapshotMessage by remember { mutableStateOf("") }
+    var importBusy by remember { mutableStateOf(false) }
+    var importMessage by remember { mutableStateOf("") }
 
     fun probe(tryRoot: Boolean) {
         lastTryRoot = tryRoot
@@ -95,6 +98,17 @@ private fun Root() {
         snapshotMessage = result.message
     }
 
+    suspend fun runImport(bundle: SboxBundle) {
+        val capNow = capability ?: return
+        importBusy = true
+        importMessage = ""
+        val result = withContext(Dispatchers.IO) {
+            ImportService.apply(bundle, fingerprint, capNow)
+        }
+        importBusy = false
+        importMessage = result.message
+    }
+
     suspend fun runExport() {
         val capNow = capability ?: return
         val fpNow = fingerprint ?: return
@@ -120,6 +134,8 @@ private fun Root() {
     val autoExport = remember { activityIntent?.getBooleanExtra("export_now", false) ?: false }
     val autoSnapSave = remember { activityIntent?.getStringExtra("snap_save") }
     val autoSnapRestore = remember { activityIntent?.getStringExtra("snap_restore") }
+    val autoOpen = remember { activityIntent?.getStringExtra("open_file") }
+    val autoImport = remember { activityIntent?.getBooleanExtra("import_now", false) ?: false }
 
     LaunchedEffect(Unit) {
         probe(prefs.getBoolean("try_root", false))
@@ -127,6 +143,22 @@ private fun Root() {
     }
 
     // 测试/自动化入口：am start ... --ez export_now true
+    LaunchedEffect(files) {
+        val name = autoOpen
+        if (!name.isNullOrBlank() && opened == null && files.isNotEmpty()) {
+            val file = files.firstOrNull { it.name == name } ?: files.first()
+            runCatching { SboxStore.load(file) }.onSuccess { opened = file.name to it }
+        }
+    }
+
+    // 自动化入口：先 open_file 打开包，再 import_now 直接导入
+    LaunchedEffect(opened) {
+        val current = opened ?: return@LaunchedEffect
+        if (autoImport && importMessage.isBlank() && capability?.canApplyConfig == true) {
+            runImport(current.second)
+        }
+    }
+
     LaunchedEffect(capability) {
         val cap = capability ?: return@LaunchedEffect
         if (autoExport && cap.canExportScene && exportMessage.isBlank()) runExport()
@@ -171,7 +203,14 @@ private fun Root() {
             bundle = current.second,
             fingerprint = fingerprint,
             fileName = current.first,
-            onBack = { opened = null },
+            canImport = capability?.canApplyConfig == true,
+            importBusy = importBusy,
+            importMessage = importMessage,
+            onBack = {
+                opened = null
+                importMessage = ""
+            },
+            onImport = { scope.launch { runImport(current.second) } },
         )
     }
 }

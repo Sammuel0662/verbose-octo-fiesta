@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,7 +37,11 @@ fun PreviewScreen(
     bundle: SboxBundle,
     fingerprint: DeviceFingerprint?,
     fileName: String,
+    canImport: Boolean,
+    importBusy: Boolean,
+    importMessage: String,
     onBack: () -> Unit,
+    onImport: () -> Unit,
 ) {
     val expanded = remember(bundle) {
         bundle.payload.profile?.let { SboxExpander.expand(it) } ?: emptyList()
@@ -97,6 +102,21 @@ fun PreviewScreen(
                 if (expanded.size > 10) {
                     Text("…… 其余 ${expanded.size - 10} 条", fontSize = 11.sp)
                 }
+            }
+        }
+
+        Section("导入到 Scene") {
+            Text(
+                if (canImport) "会先备份原 profile.json，再整体替换；Scene 需重新应用档位后生效"
+                else "当前权限不足，导入需要 root",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(onClick = onImport, enabled = canImport && !importBusy) {
+                Text(if (importBusy) "导入中…" else "导入到 Scene（自动备份）")
+            }
+            if (importMessage.isNotBlank()) {
+                Text(importMessage, fontSize = 12.sp)
             }
         }
 
