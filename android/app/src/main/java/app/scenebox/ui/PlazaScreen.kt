@@ -39,21 +39,50 @@ fun PlazaScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .systemBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .systemBarsPadding(),
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        // 固定头部：提示消息不随内容滚动，点了按钮一定能看到结果
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
             TextButton(onClick = onBack) { Text("← 返回") }
             TextButton(onClick = onRefresh, enabled = !loading) {
                 Text(if (loading) "刷新中…" else "刷新")
             }
         }
-        Text("配置广场", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text(
+            "配置广场",
+            modifier = Modifier.padding(horizontal = 20.dp),
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+        )
         if (message.isNotBlank()) {
-            Text(message, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.small,
+            ) {
+                Text(
+                    message,
+                    modifier = Modifier.padding(10.dp),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
 
         if (index == null) {
             Section("加载中") {
@@ -148,6 +177,7 @@ fun PlazaScreen(
             }
         }
     }
+}
 }
 
 @Composable

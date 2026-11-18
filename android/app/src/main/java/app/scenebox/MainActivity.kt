@@ -230,7 +230,7 @@ private fun Root() {
                     }
                     plazaLoading = false
                     result.onSuccess { plazaIndex = it }
-                        .onFailure { plazaMessage = it.message ?: "加载失败" }
+                        .onFailure { plazaMessage = "❌ 加载失败：${it.message ?: "未知错误"}" }
                 }
             },
             onDownload = { item ->
@@ -241,12 +241,12 @@ private fun Root() {
                     }
                     result.onSuccess { file ->
                         refreshFiles()
-                        plazaMessage = "已下载到「下载的配置」"
+                        plazaMessage = "✅ 已下载，正在打开预览"
                         runCatching { SboxStore.load(file) }.onSuccess {
                             opened = file.name to it
                             showPlaza = false
                         }
-                    }.onFailure { plazaMessage = "下载失败：${it.message}" }
+                    }.onFailure { plazaMessage = "❌ 下载失败：${it.message}" }
                 }
             },
             onOpenGuide = { url ->
@@ -264,7 +264,7 @@ private fun Root() {
             plazaLoading = true
             val result = withContext(Dispatchers.IO) { runCatching { PlazaRepo.fetch() } }
             plazaLoading = false
-            result.onSuccess { plazaIndex = it }.onFailure { plazaMessage = it.message ?: "加载失败" }
+            result.onSuccess { plazaIndex = it }.onFailure { plazaMessage = "❌ 加载失败：${it.message ?: "未知错误"}" }
         }
     }
 
@@ -296,7 +296,7 @@ private fun Root() {
                     val result = withContext(Dispatchers.IO) { runCatching { PlazaRepo.fetch() } }
                     plazaLoading = false
                     result.onSuccess { plazaIndex = it }
-                        .onFailure { plazaMessage = it.message ?: "加载失败" }
+                        .onFailure { plazaMessage = "❌ 加载失败：${it.message ?: "未知错误"}" }
                 }
             }
         },
