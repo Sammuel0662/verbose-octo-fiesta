@@ -21,6 +21,7 @@ import app.scenebox.core.Capability
 import app.scenebox.core.CapabilityProbe
 import app.scenebox.core.DeviceFingerprint
 import app.scenebox.core.ShizukuBridge
+import app.scenebox.sbox.ExportService
 import app.scenebox.ui.HomeScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,6 +54,8 @@ private fun Root() {
     var busy by remember { mutableStateOf(true) }
     // 记住上次是否做过 root 探测：已授权的用户重启 App 后不必再点一次
     var lastTryRoot by remember { mutableStateOf(prefs.getBoolean("try_root", false)) }
+    var exportBusy by remember { mutableStateOf(false) }
+    var exportMessage by remember { mutableStateOf("") }
 
     fun probe(tryRoot: Boolean) {
         lastTryRoot = tryRoot
@@ -73,6 +76,30 @@ private fun Root() {
         cap = capability,
         fp = fingerprint,
         busy = busy,
+        exportBusy = exportBusy,
+        exportMessage = exportMessage,
+        onExport = {
+            val capNow = capability
+            val fpNow = fingerprint
+            if (capNow != null && fpNow != null && capNow.canExportScene) {
+                exportBusy = true
+                exportMessage = ""
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) {
+                        ExportService.export(
+                            context = context,
+                            fingerprint = fpNow,
+                            name = "本机 Scene 调度备份",
+                            game = "",
+                            style = "balance",
+                            description = "由 SceneBox 导出",
+                        )
+                    }
+                    exportBusy = false
+                    exportMessage = result.message
+                }
+            }
+        },
         onRequestShizuku = {
             ShizukuBridge.request { granted ->
                 if (granted) {

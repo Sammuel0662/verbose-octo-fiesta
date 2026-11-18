@@ -31,9 +31,12 @@ fun HomeScreen(
     cap: Capability?,
     fp: DeviceFingerprint?,
     busy: Boolean,
+    exportBusy: Boolean,
+    exportMessage: String,
     onRequestShizuku: () -> Unit,
     onProbeRoot: () -> Unit,
     onRefresh: () -> Unit,
+    onExport: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -73,6 +76,27 @@ fun HomeScreen(
                 FeatureRow("导出 Scene 配置", cap.canExportScene)
                 FeatureRow("导入 / 快照恢复", cap.canApplyConfig)
                 FeatureRow("帧率采样", cap.canRecordFps)
+            }
+
+            Section("配置导出") {
+                Text(
+                    if (cap.canExportScene) {
+                        "读取 Profile + 每应用档位 + 游戏列表 + 帧率覆盖，打包成 .sbox"
+                    } else {
+                        "需要 root：读不到 /data/data/com.omarea.vtools"
+                    },
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Button(
+                    onClick = onExport,
+                    enabled = cap.canExportScene && !exportBusy,
+                ) {
+                    Text(if (exportBusy) "导出中…" else "导出 .sbox")
+                }
+                if (exportMessage.isNotBlank()) {
+                    Text(exportMessage, fontSize = 12.sp)
+                }
             }
         } else {
             Section("权限层级") {
