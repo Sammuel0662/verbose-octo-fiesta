@@ -79,7 +79,8 @@ fun PreviewScreen(
         }
 
         Section("方案规模") {
-            KeyValue("展开写入", "${expanded.size} 条")
+            KeyValue("写入 sysfs", "${expanded.count { it.path != null }} 条")
+            KeyValue("原生操作", "${expanded.count { it.path == null }} 条")
             KeyValue("涉及节点", "${expanded.mapNotNull { it.path }.distinct().size} 个")
             val schemes = bundle.payload.profile?.get("schemes") as? JsonObject
             KeyValue("档位数", "${schemes?.size ?: 0}")
