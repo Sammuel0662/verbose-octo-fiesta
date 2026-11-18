@@ -10,7 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,8 +45,12 @@ fun PreviewScreen(
     canImport: Boolean,
     importBusy: Boolean,
     importMessage: String,
+    importedOk: Boolean,
+    importBackup: String,
+    importSize: String,
     onBack: () -> Unit,
     onImport: () -> Unit,
+    onRollback: () -> Unit,
 ) {
     val expanded = remember(bundle) {
         bundle.payload.profile?.let { SboxExpander.expand(it) } ?: emptyList()
@@ -101,6 +110,63 @@ fun PreviewScreen(
                 }
                 if (expanded.size > 10) {
                     Text("…… 其余 ${expanded.size - 10} 条", fontSize = 11.sp)
+                }
+            }
+        }
+
+        if (importedOk) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                shape = MaterialTheme.shapes.medium,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                ),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "✓",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
+                        Text(
+                            "  导入成功",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    if (importSize.isNotBlank()) {
+                        Text("已写入 Scene 的 profile.json（$importSize 字节）", fontSize = 12.sp)
+                    }
+                    if (importBackup.isNotBlank()) {
+                        Text(
+                            "原配置备份：$importBackup",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(
+                        "下一步：回 Scene 重新应用一次档位或重启，让新方案生效。",
+                        fontSize = 12.sp,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = onBack) { Text("完成", fontSize = 13.sp) }
+                        TextButton(onClick = onRollback) { Text("撤销导入", fontSize = 13.sp) }
+                    }
                 }
             }
         }

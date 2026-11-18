@@ -36,7 +36,6 @@ import app.scenebox.sbox.SboxBundle
 import app.scenebox.sbox.SboxStore
 import app.scenebox.ui.GuideScreen
 import app.scenebox.ui.HomeScreen
-import app.scenebox.ui.ImportSuccessDialog
 import app.scenebox.ui.PlazaScreen
 import app.scenebox.ui.SceneBoxTheme
 import app.scenebox.ui.StartupNoticeDialog
@@ -219,26 +218,6 @@ private fun Root() {
         StartupNoticeDialog(onAccept = { noticeAccepted = true })
     }
 
-    importOk?.let { result ->
-        ImportSuccessDialog(
-            configName = importOkName,
-            sizeText = result.sizeText,
-            backupName = result.backupName,
-            onDone = {
-                importOk = null
-                opened = null
-            },
-            onRollback = {
-                importOk = null
-                opened = null
-                scope.launch {
-                    val r = withContext(Dispatchers.IO) { CleanupService.restoreLatestBackup() }
-                    cleanupMessage = r.message
-                }
-            },
-        )
-    }
-
     if (showGuide) {
         GuideScreen(onBack = { showGuide = false })
         return
@@ -371,6 +350,17 @@ private fun Root() {
             canImport = capability?.canApplyConfig == true,
             importBusy = importBusy,
             importMessage = importMessage,
+            importedOk = importOk != null,
+            importBackup = importOk?.backupName ?: "",
+            importSize = importOk?.sizeText ?: "",
+            onRollback = {
+                importOk = null
+                opened = null
+                scope.launch {
+                    val r = withContext(Dispatchers.IO) { CleanupService.restoreLatestBackup() }
+                    cleanupMessage = r.message
+                }
+            },
             onBack = {
                 opened = null
                 importMessage = ""
