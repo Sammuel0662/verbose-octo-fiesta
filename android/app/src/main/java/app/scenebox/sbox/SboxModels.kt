@@ -128,14 +128,4 @@ object SboxIO {
 
     fun parseFile(file: java.io.File): SboxBundle = parse(file.readText())
 
-    /**
-     * 校验完整性。
-     *
-     * TODO(v0.2)：canonical JSON 的 sha256 需要在 Kotlin 侧复刻 Python 引擎的规则
-     * （sort_keys + 紧凑分隔符 + UTF-8），当前先返回 "未校验"。
-     */
-    fun verifyChecksum(bundle: SboxBundle): String {
-        val c = bundle.checksum ?: return "无校验和"
-        return if (c.value.isBlank()) "无校验和" else "有校验和（v0.1 暂未本地比对）"
-    }
 }

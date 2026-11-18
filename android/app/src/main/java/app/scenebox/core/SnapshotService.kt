@@ -45,12 +45,6 @@ object SnapshotService {
 
     fun dir(context: Context): File = File(context.getExternalFilesDir(null), "snapshots")
 
-    fun list(context: Context): List<String> =
-        dir(context).listFiles()
-            ?.filter { it.name.endsWith(".json") }
-            ?.map { it.nameWithoutExtension }
-            ?.sorted()
-            ?: emptyList()
 
     private fun shellQuote(raw: String): String = "'" + raw.replace("'", "'\\''") + "'"
 

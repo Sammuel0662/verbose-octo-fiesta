@@ -1,8 +1,6 @@
 package app.scenebox.sbox
 
 import app.scenebox.core.DeviceFingerprint
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 
 enum class Level(val label: String) {
     BLOCK("拦截"),

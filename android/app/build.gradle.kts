@@ -38,11 +38,16 @@ android {
             }
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 复用 CI 的固定签名，保证 release 能覆盖升级 debug
+            if (ciKeystore != null) {
+                signingConfig = signingConfigs.getByName("ci")
+            }
         }
     }
 
