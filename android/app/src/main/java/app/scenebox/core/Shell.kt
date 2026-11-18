@@ -22,7 +22,19 @@ data class ShellResult(val code: Int, val out: String) {
 interface ShellChannel {
     val name: String
     fun exec(cmd: String, timeoutSec: Long = 8L): ShellResult
+
+    /**
+     * 在「宿主命名空间」里执行。
+     *
+     * 实测：某些 ROM/模块会把别的 App 的 /data/data/<pkg> 在应用自己的 mount
+     * namespace 里整个隐藏掉（表现是 No such file or directory），此时即使拿到
+     * root 也读不到 Scene 的配置。nsenter 进 init 的 mount namespace 就能读。
+     */
+    fun execHost(cmd: String, timeoutSec: Long = 8L): ShellResult = exec(cmd, timeoutSec)
 }
+
+/** 单引号转义，用于把整条命令塞进 sh -c '...' */
+internal fun shQuote(raw: String): String = "'" + raw.replace("'", "'\\''") + "'"
 
 internal fun execArgv(argv: Array<String>, timeoutSec: Long): ShellResult {
     return try {
@@ -50,6 +62,12 @@ object SuShell : ShellChannel {
     override val name = "su"
     override fun exec(cmd: String, timeoutSec: Long): ShellResult =
         execArgv(arrayOf("su", "-c", cmd), timeoutSec)
+
+    override fun execHost(cmd: String, timeoutSec: Long): ShellResult =
+        execArgv(
+            arrayOf("su", "-c", "nsenter -t 1 -m -- /system/bin/sh -c ${shQuote(cmd)}"),
+            timeoutSec,
+        )
 }
 
 class ShizukuShell : ShellChannel {

@@ -91,7 +91,7 @@ object CapabilityProbe {
         evidence += if (canWriteSysfs) "可写 scaling_max_freq" else "不可写 scaling_max_freq"
 
         // 4) 读 Scene 私有配置（T2 才能；Shizuku 也进不去）
-        val scene = channel.exec("test -r $SCENE_PROFILE && echo Y")
+        val scene = channel.execHost("test -r $SCENE_PROFILE && echo Y")
         val canReadScene = scene.yes()
         evidence += if (canReadScene) "可读 Scene profile.json" else "不可读 Scene 私有配置"
 

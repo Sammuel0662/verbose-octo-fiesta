@@ -12,7 +12,7 @@ object SceneFiles {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     private fun read(channel: ShellChannel, relative: String): String? {
-        val result = channel.exec("cat $DIR/$relative")
+        val result = channel.execHost("cat $DIR/$relative")
         return if (result.code == 0 && result.has()) result.out else null
     }
 
@@ -55,7 +55,7 @@ object SceneFiles {
 
     /** miui-thermal 下的温控预设名 */
     fun thermalPresets(channel: ShellChannel): List<String> {
-        val result = channel.exec("ls -1 $DIR/files/miui-thermal 2>/dev/null")
+        val result = channel.execHost("ls -1 $DIR/files/miui-thermal 2>/dev/null")
         if (result.code != 0 || !result.has()) return emptyList()
         return result.text().lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
     }
