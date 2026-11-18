@@ -1,6 +1,7 @@
 package app.scenebox.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -32,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -68,6 +71,11 @@ fun HomeScreen(
     onCleanup: (String) -> Unit,
     liveStatus: String,
     onRefreshStatus: () -> Unit,
+    sampling: Boolean,
+    sampleCount: Int,
+    sampleFps: List<Int>,
+    sampleSummary: String,
+    onStartSample: () -> Unit,
 ) {
     var pendingCleanup by remember { mutableStateOf<String?>(null) }
 
@@ -133,6 +141,14 @@ fun HomeScreen(
                 downloads = downloads,
                 onImportFile = onImportFile,
                 onOpenFile = onOpenFile,
+            )
+
+            SampleCard(
+                sampling = sampling,
+                count = sampleCount,
+                fps = sampleFps,
+                summary = sampleSummary,
+                onStart = onStartSample,
             )
 
             CleanupCard(
@@ -516,6 +532,62 @@ private fun DeviceCard(fp: DeviceFingerprint?) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SampleCard(
+    sampling: Boolean,
+    count: Int,
+    fps: List<Int>,
+    summary: String,
+    onStart: () -> Unit,
+) {
+    Card(title = "帧率 / 温度采样") {
+        if (fps.size >= 2) {
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(90.dp),
+            ) {
+                val maxFps = (fps.maxOrNull() ?: 60).coerceAtLeast(30)
+                val stepX = size.width / (fps.size - 1)
+                var prev: Offset? = null
+                fps.forEachIndexed { index, value ->
+                    val point = Offset(
+                        x = index * stepX,
+                        y = size.height - (value.toFloat() / maxFps) * size.height,
+                    )
+                    prev?.let {
+                        drawLine(
+                            color = Color(0xFF7CE38B),
+                            start = it,
+                            end = point,
+                            strokeWidth = 4f,
+                        )
+                    }
+                    prev = point
+                }
+            }
+            Text(
+                "峰值 ${fps.maxOrNull() ?: 0} · 最低 ${fps.minOrNull() ?: 0} · 均值 ${fps.average().toInt()}",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Text(
+                "进游戏后点开始，采样 30 秒，出帧率曲线和温度",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Button(onClick = onStart, enabled = !sampling, modifier = Modifier.fillMaxWidth()) {
+            Text(if (sampling) "采样中 $count/30…" else "开始采样（30 秒）", fontSize = 13.sp)
+        }
+        if (summary.isNotBlank()) {
+            Text(summary, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

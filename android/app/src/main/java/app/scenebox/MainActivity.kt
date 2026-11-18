@@ -30,6 +30,7 @@ import app.scenebox.sbox.CleanupService
 import app.scenebox.sbox.ImportService
 import app.scenebox.core.SceneFiles
 import app.scenebox.core.SnapshotService
+import app.scenebox.core.FpsSampler
 import app.scenebox.core.LiveStatus
 import app.scenebox.core.SceneState
 import app.scenebox.core.SysfsApply
@@ -94,6 +95,11 @@ private fun Root() {
     var plazaMessage by remember { mutableStateOf("") }
     var plazaApplying by remember { mutableStateOf(false) }
     var liveStatus by remember { mutableStateOf("") }
+    var sampling by remember { mutableStateOf(false) }
+    var sampleCount by remember { mutableStateOf(0) }
+    var sampleFps by remember { mutableStateOf(listOf<Int>()) }
+    var sampleSummary by remember { mutableStateOf("") }
+    var sampleTemps by remember { mutableStateOf(listOf<Float>()) }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -221,6 +227,42 @@ private fun Root() {
             } else {
                 val r = SysfsApply.apply(item.patch, fpNow)
                 if (r.ok) "✅ ${r.message}" else "❌ ${r.message}"
+            }
+        }
+    }
+
+    fun startSampling() {
+        val fpNow = fingerprint ?: return
+        sampling = true
+        sampleCount = 0
+        sampleFps = emptyList()
+        sampleTemps = emptyList()
+        sampleSummary = ""
+        scope.launch {
+            val layer = withContext(Dispatchers.IO) { FpsSampler.detectLayer() }
+            val fpsList = mutableListOf<Int>()
+            val tempList = mutableListOf<Float>()
+            repeat(30) { index ->
+                val fps = withContext(Dispatchers.IO) { layer?.let { FpsSampler.fps(it) } ?: 0 }
+                val temp = FpsSampler.temperature(context)
+                fpsList += fps
+                tempList += temp
+                sampleFps = fpsList.toList()
+                sampleTemps = tempList.toList()
+                sampleCount = index + 1
+                kotlinx.coroutines.delay(1000)
+            }
+            sampling = false
+            val valid = fpsList.filter { it > 0 }
+            sampleSummary = buildString {
+                append("帧率 ")
+                append(if (valid.isEmpty()) "无有效样本" else
+                    "均值 ${valid.average().toInt()} / 峰值 ${valid.maxOrNull()} / 最低 ${valid.minOrNull()} FPS（${valid.size}/30 有效）")
+                if (tempList.isNotEmpty()) {
+                    append("\n温度 ${tempList.first()}℃ → ${tempList.last()}℃")
+                    append("，最高 ${tempList.maxOrNull()}℃")
+                }
+                append("\n模块：${layer ?: "未找到图层"}")
             }
         }
     }
@@ -395,6 +437,11 @@ private fun Root() {
         },
         cleanupMessage = cleanupMessage,
         liveStatus = liveStatus,
+        sampling = sampling,
+        sampleCount = sampleCount,
+        sampleFps = sampleFps,
+        sampleSummary = sampleSummary,
+        onStartSample = { startSampling() },
         onRefreshStatus = {
             val fpNow = fingerprint
             if (fpNow != null) {
