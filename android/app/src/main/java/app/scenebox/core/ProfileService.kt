@@ -80,44 +80,44 @@ object ProfileService {
 
         if (governor != null) {
             for (policy in policies) {
-                appended += buildJsonArray {
+                appended.add(buildJsonArray {
                     add(JsonPrimitive("/sys/devices/system/cpu/cpufreq/${policy.name}/scaling_governor"))
                     add(JsonPrimitive(governor))
-                }
+                })
                 changes += "${policy.name} governor=$governor"
             }
         }
         for ((index, pct) in maxPct) {
             val policy = policies.getOrNull(index) ?: continue
             val freq = freqFor(policy, pct, true) ?: continue
-            appended += buildJsonArray {
+            appended.add(buildJsonArray {
                 add(JsonPrimitive("\$sbox_max_p$index"))
                 add(JsonPrimitive(freq.toString()))
-            }
+            })
             changes += "${policy.name} 上限=$freq(${pct}%)"
         }
         for ((index, pct) in minPct) {
             val policy = policies.getOrNull(index) ?: continue
             val freq = freqFor(policy, pct, false) ?: continue
-            appended += buildJsonArray {
+            appended.add(buildJsonArray {
                 add(JsonPrimitive("\$sbox_min_p$index"))
                 add(JsonPrimitive(freq.toString()))
-            }
+            })
             changes += "${policy.name} 下限=$freq(${pct}%)"
         }
         if (limitsOff) {
-            appended += buildJsonArray {
+            appended.add(buildJsonArray {
                 add(JsonPrimitive("/sys/module/perfmgr/parameters/perfmgr_enable"))
                 add(JsonPrimitive("0"))
-            }
-            appended += buildJsonArray {
+            })
+            appended.add(buildJsonArray {
                 add(JsonPrimitive("/sys/module/migt/parameters/glk_disable"))
                 add(JsonPrimitive("1"))
-            }
-            appended += buildJsonArray {
+            })
+            appended.add(buildJsonArray {
                 add(JsonPrimitive("/proc/game_opt/disable_cpufreq_limit"))
                 add(JsonPrimitive("1"))
-            }
+            })
             changes += "解除系统限制器"
         }
 
