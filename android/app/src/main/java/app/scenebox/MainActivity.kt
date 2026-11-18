@@ -3,7 +3,9 @@ package app.scenebox
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -66,7 +68,8 @@ private fun Root() {
     var lastTryRoot by remember { mutableStateOf(prefs.getBoolean("try_root", false)) }
     var exportBusy by remember { mutableStateOf(false) }
     var exportMessage by remember { mutableStateOf("") }
-    var files by remember { mutableStateOf(listOf<File>()) }
+    var exports by remember { mutableStateOf(listOf<File>()) }
+    var downloads by remember { mutableStateOf(listOf<File>()) }
     var opened by remember { mutableStateOf<Pair<String, SboxBundle>?>(null) }
     var snapshotMessage by remember { mutableStateOf("") }
     var importBusy by remember { mutableStateOf(false) }
@@ -89,7 +92,18 @@ private fun Root() {
     }
 
     fun refreshFiles() {
-        files = SboxStore.list(context)
+        exports = SboxStore.list(context)
+        downloads = SboxStore.listDownloads(context)
+    }
+
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val copied = SboxStore.copyIn(context, uri)
+            refreshFiles()
+            if (copied != null) {
+                runCatching { SboxStore.load(copied) }.onSuccess { opened = copied.name to it }
+            }
+        }
     }
 
     suspend fun runSnapshot(save: Boolean, label: String) {
@@ -148,10 +162,11 @@ private fun Root() {
     }
 
     // 测试/自动化入口：am start ... --ez export_now true
-    LaunchedEffect(files) {
+    LaunchedEffect(exports, downloads) {
         val name = autoOpen
-        if (!name.isNullOrBlank() && opened == null && files.isNotEmpty()) {
-            val file = files.firstOrNull { it.name == name } ?: files.first()
+        val all = exports + downloads
+        if (!name.isNullOrBlank() && opened == null && all.isNotEmpty()) {
+            val file = all.firstOrNull { it.name == name } ?: all.first()
             runCatching { SboxStore.load(file) }.onSuccess { opened = file.name to it }
         }
     }
@@ -209,7 +224,7 @@ private fun Root() {
             scope.launch {
                 val result = withContext(Dispatchers.IO) {
                     when (action) {
-                        "exports" -> CleanupService.clearExports(context)
+                        "downloads" -> CleanupService.clearDownloads(context)
                         "snapshots" -> CleanupService.clearSnapshots(context)
                         else -> CleanupService.restoreLatestBackup()
                     }
@@ -221,7 +236,9 @@ private fun Root() {
         snapshotMessage = snapshotMessage,
         onSnapshotSave = { label -> scope.launch { runSnapshot(true, label) } },
         onSnapshotRestore = { label -> scope.launch { runSnapshot(false, label) } },
-        files = files,
+        exports = exports,
+        downloads = downloads,
+        onImportFile = { filePicker.launch(arrayOf("*/*")) },
         onOpenFile = { file ->
             runCatching { SboxStore.load(file) }.onSuccess { bundle ->
                 opened = file.name to bundle

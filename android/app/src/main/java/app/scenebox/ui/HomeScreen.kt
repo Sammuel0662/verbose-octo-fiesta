@@ -44,8 +44,10 @@ fun HomeScreen(
     onProbeRoot: () -> Unit,
     onRefresh: () -> Unit,
     onExport: () -> Unit,
-    files: List<File>,
+    exports: List<File>,
+    downloads: List<File>,
     onOpenFile: (File) -> Unit,
+    onImportFile: () -> Unit,
     snapshotMessage: String,
     onSnapshotSave: (String) -> Unit,
     onSnapshotRestore: (String) -> Unit,
@@ -170,15 +172,33 @@ fun HomeScreen(
                 }
             }
 
-            Section("已导出的配置") {
-                if (files.isEmpty()) {
+            Section("我的导出") {
+                if (exports.isEmpty()) {
                     Text(
                         "还没有导出过配置",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    for (file in files.take(8)) {
+                    for (file in exports.take(6)) {
+                        TextButton(onClick = { onOpenFile(file) }) {
+                            Text("${file.name}  ·  ${SboxStore.sizeText(file)}", fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+
+            Section("下载的配置") {
+                Text(
+                    "从聊天 / 浏览器 / 社区下载的 .sbox，点下面的按钮导入到本地",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Button(onClick = onImportFile) { Text("从文件导入 .sbox") }
+                if (downloads.isEmpty()) {
+                    Text("还没有下载的配置", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    for (file in downloads.take(6)) {
                         TextButton(onClick = { onOpenFile(file) }) {
                             Text("${file.name}  ·  ${SboxStore.sizeText(file)}", fontSize = 12.sp)
                         }
@@ -226,7 +246,7 @@ fun HomeScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                TextButton(onClick = { pendingCleanup = "exports" }) { Text("清空导出包", fontSize = 12.sp) }
+                TextButton(onClick = { pendingCleanup = "downloads" }) { Text("清空下载的配置", fontSize = 12.sp) }
                 TextButton(onClick = { pendingCleanup = "snapshots" }) { Text("清空快照", fontSize = 12.sp) }
             }
             Button(
@@ -255,7 +275,7 @@ private fun ConfirmDialog(
     onConfirm: () -> Unit,
 ) {
     val (title, text) = when (action) {
-        "exports" -> "清空导出包" to "将删除 App 目录下所有导出的 .sbox 配置包，不可恢复。"
+        "downloads" -> "清空下载的配置" to "将删除所有从 SceneBox 下载/接收的配置包（自己导出的会保留）。"
         "snapshots" -> "清空快照" to "将删除所有调度快照，删除后无法再一键恢复。"
         else -> "撤销导入" to "将把 Scene 的 profile.json 还原到最近一次导入前的备份。"
     }

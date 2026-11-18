@@ -15,14 +15,17 @@ object CleanupService {
 
     private const val TARGET = "/data/data/com.omarea.vtools/files/profile.json"
 
-    /** 清空导出的 .sbox 包 */
-    fun clearExports(context: Context): Result {
-        val dir = File(context.getExternalFilesDir(null), "sbox")
+    /**
+     * 一键清理：只删"从 SceneBox 下载/接收"的配置包（downloads 目录），
+     * 用户自己导出的包留在 sbox 目录里不动。
+     */
+    fun clearDownloads(context: Context): Result {
+        val dir = File(context.getExternalFilesDir(null), "downloads")
         val files = dir.listFiles()?.filter { it.name.endsWith(".sbox", true) } ?: emptyList()
-        if (files.isEmpty()) return Result(true, "没有可删除的配置包")
+        if (files.isEmpty()) return Result(true, "没有下载过的配置包")
         var removed = 0
         for (f in files) if (f.delete()) removed++
-        return Result(true, "已删除 $removed 个配置包")
+        return Result(true, "已清理 $removed 个下载的配置包")
     }
 
     /** 清空快照 */
