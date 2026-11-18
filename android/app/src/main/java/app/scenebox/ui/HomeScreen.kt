@@ -63,6 +63,8 @@ fun HomeScreen(
     onOpenFile: (File) -> Unit,
     cleanupMessage: String,
     onCleanup: (String) -> Unit,
+    liveStatus: String,
+    onRefreshStatus: () -> Unit,
 ) {
     var pendingCleanup by remember { mutableStateOf<String?>(null) }
 
@@ -106,6 +108,15 @@ fun HomeScreen(
             )
 
             StatusCard(cap)
+
+            Card(title = "实时状态") {
+                if (liveStatus.isBlank()) {
+                    Text("读取中…", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text(liveStatus, fontSize = 11.sp, lineHeight = 16.sp)
+                }
+                TextButton(onClick = onRefreshStatus) { Text("刷新一次", fontSize = 12.sp) }
+            }
 
             SnapshotCard(
                 enabled = cap?.canSnapshotRestore == true,

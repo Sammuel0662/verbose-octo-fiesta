@@ -30,6 +30,7 @@ import app.scenebox.sbox.CleanupService
 import app.scenebox.sbox.ImportService
 import app.scenebox.core.SceneFiles
 import app.scenebox.core.SnapshotService
+import app.scenebox.core.LiveStatus
 import app.scenebox.core.ProfileService
 import app.scenebox.core.SystemReset
 import app.scenebox.core.SuShell
@@ -90,6 +91,7 @@ private fun Root() {
     var plazaLoading by remember { mutableStateOf(false) }
     var plazaMessage by remember { mutableStateOf("") }
     var plazaApplying by remember { mutableStateOf(false) }
+    var liveStatus by remember { mutableStateOf("") }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -211,6 +213,15 @@ private fun Root() {
             patched == null -> "❌ 读不到 Scene 的 profile（需要 root）"
             written == null || !written.ok -> "❌ ${written?.message ?: "写入失败"}"
             else -> "✅ 已写入 Scene 方案：${patched.changes.take(4).joinToString("、")}"
+        }
+    }
+
+    // 实时状态：每 3 秒刷新一次频率/温度，便于观察应用方案前后的变化
+    LaunchedEffect(fingerprint) {
+        val fpNow = fingerprint ?: return@LaunchedEffect
+        while (true) {
+            liveStatus = withContext(Dispatchers.IO) { LiveStatus.read(context, fpNow).text() }
+            kotlinx.coroutines.delay(3000)
         }
     }
 
@@ -366,6 +377,15 @@ private fun Root() {
             }
         },
         cleanupMessage = cleanupMessage,
+        liveStatus = liveStatus,
+        onRefreshStatus = {
+            val fpNow = fingerprint
+            if (fpNow != null) {
+                scope.launch {
+                    liveStatus = withContext(Dispatchers.IO) { LiveStatus.read(context, fpNow).text() }
+                }
+            }
+        },
         onCleanup = { action ->
             scope.launch {
                 val result = withContext(Dispatchers.IO) {
