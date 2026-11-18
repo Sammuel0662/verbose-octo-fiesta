@@ -22,7 +22,11 @@ import app.scenebox.core.CapabilityProbe
 import app.scenebox.core.DeviceFingerprint
 import app.scenebox.core.ShizukuBridge
 import app.scenebox.sbox.ExportService
+import app.scenebox.sbox.SboxBundle
+import app.scenebox.sbox.SboxStore
 import app.scenebox.ui.HomeScreen
+import app.scenebox.ui.PreviewScreen
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,6 +60,8 @@ private fun Root() {
     var lastTryRoot by remember { mutableStateOf(prefs.getBoolean("try_root", false)) }
     var exportBusy by remember { mutableStateOf(false) }
     var exportMessage by remember { mutableStateOf("") }
+    var files by remember { mutableStateOf(listOf<File>()) }
+    var opened by remember { mutableStateOf<Pair<String, SboxBundle>?>(null) }
 
     fun probe(tryRoot: Boolean) {
         lastTryRoot = tryRoot
@@ -70,8 +76,17 @@ private fun Root() {
         }
     }
 
-    LaunchedEffect(Unit) { probe(prefs.getBoolean("try_root", false)) }
+    fun refreshFiles() {
+        files = SboxStore.list(context)
+    }
 
+    LaunchedEffect(Unit) {
+        probe(prefs.getBoolean("try_root", false))
+        refreshFiles()
+    }
+
+    val current = opened
+    if (current == null) {
     HomeScreen(
         cap = capability,
         fp = fingerprint,
@@ -97,6 +112,7 @@ private fun Root() {
                     }
                     exportBusy = false
                     exportMessage = result.message
+                    refreshFiles()
                 }
             }
         },
@@ -109,5 +125,19 @@ private fun Root() {
         },
         onProbeRoot = { probe(true) },
         onRefresh = { probe(lastTryRoot) },
+        files = files,
+        onOpenFile = { file ->
+            runCatching { SboxStore.load(file) }.onSuccess { bundle ->
+                opened = file.name to bundle
+            }
+        },
     )
+    } else {
+        PreviewScreen(
+            bundle = current.second,
+            fingerprint = fingerprint,
+            fileName = current.first,
+            onBack = { opened = null },
+        )
+    }
 }

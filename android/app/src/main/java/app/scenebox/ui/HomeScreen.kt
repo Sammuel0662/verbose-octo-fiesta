@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.scenebox.core.Capability
 import app.scenebox.core.DeviceFingerprint
+import app.scenebox.sbox.SboxStore
+import java.io.File
 
 @Composable
 fun HomeScreen(
@@ -37,6 +39,8 @@ fun HomeScreen(
     onProbeRoot: () -> Unit,
     onRefresh: () -> Unit,
     onExport: () -> Unit,
+    files: List<File>,
+    onOpenFile: (File) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -96,6 +100,22 @@ fun HomeScreen(
                 }
                 if (exportMessage.isNotBlank()) {
                     Text(exportMessage, fontSize = 12.sp)
+                }
+            }
+
+            Section("已导出的配置") {
+                if (files.isEmpty()) {
+                    Text(
+                        "还没有导出过配置",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    for (file in files.take(8)) {
+                        TextButton(onClick = { onOpenFile(file) }) {
+                            Text("${file.name}  ·  ${SboxStore.sizeText(file)}", fontSize = 12.sp)
+                        }
+                    }
                 }
             }
         } else {

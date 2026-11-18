@@ -1,10 +1,8 @@
 package app.scenebox.sbox
 
 import app.scenebox.core.DeviceFingerprint
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 
 enum class Level(val label: String) {
     BLOCK("拦截"),
@@ -88,25 +86,25 @@ object SboxValidator {
             )
         }
 
-        // 4) 频点表比对
-        val strings = mutableListOf<String>()
-        bundle.payload.profile?.let { collectStrings(it, strings) }
+        // 4) 频点表比对：只看"真正会被写入的数值"，与 engine/analyze.py 的 validate 一致
+        val expanded = bundle.payload.profile?.let { SboxExpander.expand(it) } ?: emptyList()
+        val freqToken = Regex("^[#^@$]?\\d{5,8}$")
 
-        if (fp.allFreqs.isNotEmpty() && strings.isNotEmpty()) {
+        if (fp.allFreqs.isNotEmpty() && expanded.isNotEmpty()) {
             val above = sortedSetOf<Long>()
             val unknown = sortedSetOf<Long>()
             val localFreqs = fp.allFreqs
             val localMax = fp.maxFreq
-            for (s in strings) {
-                for (tok in s.split(Regex("[^0-9]+"))) {
-                    if (tok.length !in 6..7) continue
-                    val v = tok.toLongOrNull() ?: continue
-                    if (v !in freqRange) continue
-                    if (v > localMax) {
-                        above += v
-                    } else if (v !in localFreqs) {
-                        unknown += v
-                    }
+            for (write in expanded) {
+                if (write.path == null) continue
+                val value = write.value.trim()
+                if (!freqToken.matches(value)) continue
+                val number = value.trimStart('#', '^', '@', '$').toLongOrNull() ?: continue
+                if (number !in freqRange) continue
+                if (number > localMax) {
+                    above += number
+                } else if (number !in localFreqs) {
+                    unknown += number
                 }
             }
             if (above.isNotEmpty()) {
@@ -127,8 +125,10 @@ object SboxValidator {
             }
         }
 
-        // 5) 限制器 / 温控
-        val hits = strings.filter { value -> riskyKeywords.any { value.contains(it) } }.toSet()
+        // 5) 限制器 / 温控：看写入路径，不看数值
+        val hits = expanded.mapNotNull { it.path }
+            .filter { path -> riskyKeywords.any { path.contains(it) } }
+            .distinct()
         if (hits.isNotEmpty()) {
             issues += Issue(
                 Level.CONFIRM,
@@ -143,14 +143,5 @@ object SboxValidator {
             else -> Verdict.PASS
         }
         return ValidationResult(verdict, issues)
-    }
-
-    private fun collectStrings(element: JsonElement, out: MutableList<String>) {
-        when (element) {
-            is JsonObject -> element.values.forEach { collectStrings(it, out) }
-            is JsonArray -> element.forEach { collectStrings(it, out) }
-            is JsonPrimitive -> if (element.isString) out += element.content
-            else -> Unit
-        }
     }
 }
