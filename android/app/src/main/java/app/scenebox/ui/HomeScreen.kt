@@ -4,7 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.scenebox.core.Capability
@@ -439,33 +442,45 @@ private fun CleanupCard(
 ) {
     Card(title = "清理与还原") {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SmallButton("清空下载", true) { onAction("downloads") }
-            SmallButton("清空快照", true) { onAction("snapshots") }
+            SmallButton("清空下载", true, Modifier.weight(1f)) { onAction("downloads") }
+            SmallButton("清空快照", true, Modifier.weight(1f)) { onAction("snapshots") }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SmallButton("还原系统配置", canReset) { onAction("system") }
-            SmallButton("撤销导入", canRestoreImport) { onAction("restore") }
+            SmallButton("还原系统配置", canReset, Modifier.weight(1f)) { onAction("system") }
+            SmallButton("撤销导入", canRestoreImport, Modifier.weight(1f)) { onAction("restore") }
         }
         if (message.isNotBlank()) Note(message)
     }
 }
 
 @Composable
-private fun SmallButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+private fun SmallButton(
+    label: String,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .clickable(enabled = enabled, onClick = onClick),
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)),
     ) {
-        Text(
-            label,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(if (enabled) 1f else 0.35f),
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                label,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(if (enabled) 1f else 0.35f),
+            )
+        }
     }
 }
 
