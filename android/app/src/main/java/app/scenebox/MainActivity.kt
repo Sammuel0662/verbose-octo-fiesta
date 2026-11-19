@@ -28,6 +28,7 @@ import app.scenebox.core.ShizukuBridge
 import app.scenebox.sbox.ExportService
 import app.scenebox.sbox.CleanupService
 import app.scenebox.sbox.ImportService
+import app.scenebox.core.PatchTextParser
 import app.scenebox.core.SceneFiles
 import app.scenebox.core.SnapshotService
 import app.scenebox.core.FpsSampler

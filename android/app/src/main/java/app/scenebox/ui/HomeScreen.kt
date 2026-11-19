@@ -571,11 +571,6 @@ private fun DeviceCard(fp: DeviceFingerprint?) {
 
 @Composable
 private fun SampleCard(
-    customText: String,
-    customBusy: Boolean,
-    customMessage: String,
-    onCustomTextChange: (String) -> Unit,
-    onDeployCustom: () -> Unit,
     sampling: Boolean,
     count: Int,
     fps: List<Int>,
