@@ -153,7 +153,7 @@ class HudService : Service() {
                 setColor(Color.parseColor("#F010161B"))
                 setStroke(dp(1f).toInt(), Color.parseColor("#33FFFFFF"))
             }
-            setPadding(dp(14f).toInt(), dp(10f).toInt(), dp(14f).toInt(), dp(12f))
+            setPadding(dp(14f).toInt(), dp(10f).toInt(), dp(14f).toInt(), dp(12f).toInt())
         }
 
         val header = LinearLayout(this).apply {
