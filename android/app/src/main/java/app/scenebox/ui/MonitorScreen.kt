@@ -60,7 +60,7 @@ fun MonitorScreen(
             modifier = Modifier.padding(top = 16.dp),
         )
 
-        Card(title = "实时状态") {
+        MonitorCard(title = "实时状态") {
             if (liveStatus.isBlank()) {
                 Text("读取中…", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
@@ -69,7 +69,7 @@ fun MonitorScreen(
             TextButton(onClick = onRefreshStatus) { Text("刷新一次", fontSize = 12.sp) }
         }
 
-        Card(title = "帧率 / 温度采样") {
+        MonitorCard(title = "帧率 / 温度采样") {
             if (sampleFps.size >= 2) {
                 Canvas(
                     modifier = Modifier
@@ -115,7 +115,7 @@ fun MonitorScreen(
             }
         }
 
-        Card(title = "环境检测") {
+        MonitorCard(title = "环境检测") {
             Button(
                 onClick = onRunDiagnostics,
                 enabled = !diagBusy,
@@ -154,7 +154,7 @@ fun MonitorScreen(
             }
         }
 
-        Card(title = "操作日志") {
+        MonitorCard(title = "操作日志") {
             if (logLines.isEmpty()) {
                 Text("还没有操作记录", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
@@ -178,7 +178,7 @@ fun MonitorScreen(
 }
 
 @Composable
-internal fun Card(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun MonitorCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,

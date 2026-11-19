@@ -41,7 +41,7 @@ fun SettingsScreen(
         )
 
         if (fp != null) {
-            Card(title = "本机信息") {
+            SectionCard(title = "本机信息") {
                 RowLine("机型", fp.model)
                 RowLine("芯片", "${fp.soc} ${fp.platform}")
                 RowLine("系统", "Android ${fp.sdk}")
@@ -88,5 +88,22 @@ private fun RowLine(key: String, value: String) {
     ) {
         Text(key, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, fontSize = 11.sp, maxLines = 1)
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun SectionCard(title: String, content: @androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    androidx.compose.material3.Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            content()
+        }
     }
 }
