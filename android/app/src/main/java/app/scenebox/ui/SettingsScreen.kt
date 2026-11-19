@@ -29,6 +29,9 @@ fun SettingsScreen(
     hzMessage: String,
     onSetHz: (Int) -> Unit,
     onResetHz: () -> Unit,
+    hudOn: Boolean,
+    hudMessage: String,
+    onToggleHud: () -> Unit,
     onOpenGuide: () -> Unit,
     onClearLog: () -> Unit,
 ) {
@@ -87,6 +90,26 @@ fun SettingsScreen(
             if (hzMessage.isNotBlank()) {
                 Text(hzMessage, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+
+        SectionCard(title = "悬浮控制") {
+            Text(
+                "开启后桌面会有一个可拖动的小面板：点档位直接改 CPU 频率，点 Hz 直接锁刷新率，不用回 App。" +
+                    "面板只写系统调度参数，不注入游戏、不读其他应用。",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(onClick = onToggleHud, modifier = Modifier.fillMaxWidth()) {
+                Text(if (hudOn) "关闭悬浮控制" else "开启悬浮控制", fontSize = 13.sp)
+            }
+            if (hudMessage.isNotBlank()) {
+                Text(hudMessage, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(
+                "首次使用需要「悬浮窗」权限；Android 13+ 还需要通知权限（用于常驻通知）。",
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         SectionCard(title = "声明与边界") {

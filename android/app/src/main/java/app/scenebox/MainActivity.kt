@@ -29,6 +29,7 @@ import app.scenebox.core.DeviceInfoFull
 import app.scenebox.core.Diagnostics
 import app.scenebox.core.DisplayControl
 import app.scenebox.core.SampleStore
+import app.scenebox.hud.HudService
 import app.scenebox.core.DeviceFingerprint
 import app.scenebox.core.ShizukuBridge
 import app.scenebox.sbox.ExportService
@@ -142,6 +143,8 @@ private fun Root() {
     var scheduleBusy by remember { mutableStateOf(false) }
     var governors by remember { mutableStateOf(listOf<String>()) }
     var currentGovernor by remember { mutableStateOf("") }
+    var hudOn by remember { mutableStateOf(false) }
+    var hudMessage by remember { mutableStateOf("") }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -761,6 +764,34 @@ private fun Root() {
             SettingsScreen(
                 fp = fingerprint,
                 deviceInfo = deviceInfo,
+                hudOn = hudOn,
+                hudMessage = hudMessage,
+                onToggleHud = {
+                    val ctx = context
+                    if (!android.provider.Settings.canDrawOverlays(ctx)) {
+                        hudMessage = "需要「悬浮窗」权限，已跳转设置"
+                        runCatching {
+                            ctx.startActivity(
+                                Intent(
+                                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:" + ctx.packageName),
+                                ),
+                            )
+                        }
+                    } else if (hudOn) {
+                        HudService.stop(ctx)
+                        hudOn = false
+                        hudMessage = "已关闭悬浮控制"
+                        ActionLog.append(ctx, "悬浮窗", "关闭")
+                        logVersion++
+                    } else {
+                        HudService.start(ctx)
+                        hudOn = true
+                        hudMessage = "已开启，桌面上可拖动的小面板"
+                        ActionLog.append(ctx, "悬浮窗", "开启")
+                        logVersion++
+                    }
+                },
                 hzModes = hzModes,
                 currentHz = DisplayControl.current(context),
                 hzMessage = hzMessage,
