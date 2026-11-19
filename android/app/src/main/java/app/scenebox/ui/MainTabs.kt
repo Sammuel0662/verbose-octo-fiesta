@@ -83,9 +83,9 @@ fun MainTabs(
         ) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White.copy(alpha = 0.06f),
+                color = Color.Transparent,
                 shape = RoundedCornerShape(26.dp),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.14f)),
             ) {
                 Row(
                     modifier = Modifier
@@ -121,7 +121,7 @@ private fun TabItem(
         label = "tint",
     )
     val background by animateColorAsState(
-        targetValue = if (selected) accent.copy(alpha = 0.16f) else Color.Transparent,
+        targetValue = if (selected) accent.copy(alpha = 0.22f) else Color.Transparent,
         animationSpec = tween(durationMillis = 200),
         label = "bg",
     )
