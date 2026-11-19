@@ -61,31 +61,15 @@ object FpsSampler {
     }
 
     /**
-     * 1% low：从 framestats 的逐帧时间戳算 P99 帧耗时，再换算成帧率。
-     * 取不到返回 0。
+     * 1% low：直接用 gfxinfo 的 P99 帧耗时换算。
+     * framestats 的列顺序随版本变化（本机首列是 Flags，IntendedVsync 在第 3 列），
+     * 按列名解析太脆，P99 分位数已经够用。
      */
     fun onePercentLow(pkg: String): Int {
-        val text = SuShell.exec("dumpsys gfxinfo $pkg framestats 2>/dev/null", 20L).text()
+        val text = SuShell.exec("dumpsys gfxinfo $pkg 2>/dev/null", 15L).text()
         if (text.isBlank()) return 0
-        val nsPerMs = 1_000_000.0
-        val durations = mutableListOf<Double>()
-        var inData = false
-        for (line in text.lineSequence()) {
-            if (line.startsWith("---PROFILEDATA---")) {
-                if (inData) break else { inData = true; continue }
-            }
-            if (!inData) continue
-            val cols = line.split(",")
-            if (cols.size < 13) continue
-            val intended = cols[1].toLongOrNull() ?: continue
-            val completed = cols[12].toLongOrNull() ?: continue
-            if (intended <= 0 || completed <= 0 || completed < intended) continue
-            val ms = (completed - intended) / nsPerMs
-            if (ms in 0.1..500.0) durations += ms
-        }
-        if (durations.size < 20) return 0
-        durations.sort()
-        val p99 = durations[((durations.size - 1) * 0.99).toInt()]
+        val p99 = Regex("99th percentile:\\s*(\\d+)ms").find(text)
+            ?.groupValues?.get(1)?.toIntOrNull() ?: 0
         if (p99 <= 0) return 0
         return (1000.0 / p99).toInt().coerceIn(0, 240)
     }
