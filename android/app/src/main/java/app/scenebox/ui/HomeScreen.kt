@@ -84,6 +84,7 @@ fun HomeScreen(
     customBusy: Boolean,
     customMessage: String,
     onCustomTextChange: (String) -> Unit,
+    onOpenSchedule: () -> Unit,
     onDeployCustom: () -> Unit,
     sampling: Boolean,
     sampleCount: Int,
@@ -148,7 +149,18 @@ fun HomeScreen(
                 onOpenFile = onOpenFile,
             )
 
-            Card(title = "自定义参数") {
+            Card(title = "自定义调度") {
+                Button(onClick = onOpenSchedule, modifier = Modifier.fillMaxWidth()) {
+                    Text("逐项自定义（推荐）", fontSize = 13.sp)
+                }
+                Text(
+                    "每项一个控件：调度器、每簇上下限、GPU、clamp、core_ctl、开关、任意节点",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Card(title = "自定义参数（文本）") {
                 Text(
                     "一行一条，只写你想改的那一项就行",
                     fontSize = 11.sp,

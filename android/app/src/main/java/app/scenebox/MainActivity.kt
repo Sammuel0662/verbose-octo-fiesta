@@ -52,6 +52,7 @@ import app.scenebox.ui.HomeScreen
 import app.scenebox.ui.MainTabs
 import app.scenebox.ui.MonitorScreen
 import app.scenebox.ui.NodeScreen
+import app.scenebox.ui.ScheduleEditorScreen
 import app.scenebox.ui.SettingsScreen
 import app.scenebox.ui.PlazaScreen
 import app.scenebox.ui.SceneBoxTheme
@@ -126,6 +127,10 @@ private fun Root() {
     var nodes by remember { mutableStateOf(listOf<NodeBrowser.Node>()) }
     var nodeLoading by remember { mutableStateOf(false) }
     var nodeMessage by remember { mutableStateOf("") }
+    var showSchedule by remember { mutableStateOf(false) }
+    var scheduleMessage by remember { mutableStateOf("") }
+    var scheduleBusy by remember { mutableStateOf(false) }
+    var governors by remember { mutableStateOf(listOf<String>()) }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -358,6 +363,12 @@ private fun Root() {
     }
 
     LaunchedEffect(Unit) {
+        governors = withContext(Dispatchers.IO) {
+            SuShell.exec(
+                "cat /sys/devices/system/cpu/cpufreq/policy0/scaling_available_governors 2>/dev/null",
+                8L,
+            ).text().trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+        }
         hzModes = DisplayControl.modes(context)
         val info = withContext(Dispatchers.IO) { DeviceInfoFull.collect(context) }
         deviceInfo = info.lines()
@@ -414,6 +425,32 @@ private fun Root() {
 
     if (showGuide) {
         GuideScreen(onBack = { showGuide = false })
+        return
+    }
+
+    if (showSchedule) {
+        ScheduleEditorScreen(
+            policies = fingerprint?.policies ?: emptyList(),
+            governors = governors,
+            message = scheduleMessage,
+            busy = scheduleBusy,
+            onBack = { showSchedule = false },
+            onApply = { patch, summary ->
+                scheduleBusy = true
+                scheduleMessage = "应用中…"
+                scope.launch {
+                    val fpNow = fingerprint
+                    val result = withContext(Dispatchers.IO) {
+                        if (fpNow == null) "❌ 缺少频点表"
+                        else deployPatchList(patch, fpNow)
+                    }
+                    scheduleBusy = false
+                    scheduleMessage = result
+                    ActionLog.append(context, "逐项", "$summary → ${result.take(50)}")
+                    logVersion++
+                }
+            },
+        )
         return
     }
 
@@ -571,6 +608,7 @@ private fun Root() {
         customBusy = customBusy,
         customMessage = customMessage,
         onCustomTextChange = { customText = it },
+        onOpenSchedule = { showSchedule = true },
         onDeployCustom = {
             customBusy = true
             customMessage = "部署中…"
@@ -784,3 +822,20 @@ private suspend fun deployCustomPatch(text: String, fingerprint: DeviceFingerpri
         val warn = if (parsed.errors.isEmpty()) "" else "\n⚠ ${parsed.errors.joinToString("；")}"
         return base + warn
     }
+
+private suspend fun deployPatchList(patch: List<Pair<String, String>>, fp: DeviceFingerprint): String {
+    if (patch.isEmpty()) return "❌ 没有要应用的项"
+    return if (SceneState.detect().willApply) {
+        val raw = SceneFiles.profile(SuShell)
+        if (raw == null) "❌ 读不到 Scene 的 profile（需要 root）"
+        else {
+            val patched = ProfileService.patch(raw, patch, fp)
+            val written = ImportService.writeProfile(patched.profile)
+            if (written.ok) "✅ 已写入 Scene 方案：${patched.changes.take(4).joinToString("、")}"
+            else "❌ ${written.message}"
+        }
+    } else {
+        val r = SysfsApply.apply(patch, fp)
+        if (r.ok) "✅ ${r.message}" else "❌ ${r.message}"
+    }
+}
