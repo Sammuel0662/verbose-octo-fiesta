@@ -83,11 +83,11 @@ fun MainTabs(
         ) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.26f),
                 shape = RoundedCornerShape(26.dp),
                 border = BorderStroke(
                     1.dp,
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
                 ),
             ) {
                 Row(
