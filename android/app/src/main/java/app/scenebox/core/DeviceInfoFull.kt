@@ -34,8 +34,7 @@ object DeviceInfoFull {
     }
 
     fun collect(context: Context): Info {
-        val kernel = (shellText("cat /proc/version").ifBlank { "" })
-            .let { if (it.length > 60) it.take(60) + "…" else it }
+        val kernel = shellText("uname -r").trim().ifBlank { "未知" }
 
         val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "?"
 

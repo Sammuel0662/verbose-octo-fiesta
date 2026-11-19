@@ -47,7 +47,7 @@ fun SettingsScreen(
 
         if (fp != null) {
             SectionCard(title = "本机信息") {
-                RowLine("机型", fp.model)
+                RowLine("机型", "${fp.brand} ${fp.model}".trim())
                 RowLine("芯片", "${fp.socModel} ${fp.socPlatform}")
                 RowLine("系统", "Android ${fp.android} (SDK ${fp.sdk})")
                 for ((key, value) in deviceInfo) RowLine(key, value)

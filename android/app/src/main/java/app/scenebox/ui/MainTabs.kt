@@ -12,6 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -40,11 +47,17 @@ fun MainTabs(
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(1f)) {
-            when (tab) {
-                0 -> home()
-                1 -> nodes()
-                2 -> monitor()
-                else -> settings()
+            Crossfade(
+                targetState = tab,
+                animationSpec = tween(durationMillis = 220),
+                label = "tab",
+            ) { current ->
+                when (current) {
+                    0 -> home()
+                    1 -> nodes()
+                    2 -> monitor()
+                    else -> settings()
+                }
             }
         }
 
@@ -91,6 +104,24 @@ private fun TabItem(
     onClick: () -> Unit,
 ) {
     val accent = MaterialTheme.colorScheme.primary
+    val idle = MaterialTheme.colorScheme.onSurfaceVariant
+
+    val tint by animateColorAsState(
+        targetValue = if (selected) accent else idle,
+        animationSpec = tween(durationMillis = 200),
+        label = "tint",
+    )
+    val background by animateColorAsState(
+        targetValue = if (selected) accent.copy(alpha = 0.14f) else Color.Transparent,
+        animationSpec = tween(durationMillis = 200),
+        label = "bg",
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1f else 0.94f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 700f),
+        label = "scale",
+    )
+
     Box(
         modifier = modifier
             .clickable(onClick = onClick)
@@ -100,11 +131,10 @@ private fun TabItem(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    if (selected) accent.copy(alpha = 0.13f) else Color.Transparent,
-                    RoundedCornerShape(18.dp),
-                )
-                .padding(vertical = 8.dp),
+                .scale(scale)
+                .clip(RoundedCornerShape(percent = 50))
+                .background(background)
+                .padding(vertical = 9.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
@@ -112,17 +142,13 @@ private fun TabItem(
                 modifier = Modifier.size(20.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    icon,
-                    fontSize = 15.sp,
-                    color = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Text(icon, fontSize = 15.sp, color = tint)
             }
             Text(
                 label,
                 fontSize = 11.sp,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = tint,
                 textAlign = TextAlign.Center,
             )
         }
