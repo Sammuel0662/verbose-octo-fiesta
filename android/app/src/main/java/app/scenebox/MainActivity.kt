@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
@@ -378,7 +379,8 @@ private fun Root() {
         deviceInfo = info.lines()
     }
 
-    LaunchedEffect(fingerprint) {
+    LaunchedEffect(fingerprint, tab) {
+        if (tab != 2) return@LaunchedEffect
         val fpNow = fingerprint ?: return@LaunchedEffect
         while (true) {
             liveStatus = withContext(Dispatchers.IO) {
@@ -420,6 +422,21 @@ private fun Root() {
         }
         if (!autoSnapRestore.isNullOrBlank() && cap.canSnapshotRestore && snapshotMessage.isBlank()) {
             runSnapshot(false, autoSnapRestore)
+        }
+    }
+
+    BackHandler(
+        enabled = showGuide || showSchedule || showPlaza || opened != null || tab != 0,
+    ) {
+        when {
+            showGuide -> showGuide = false
+            showSchedule -> showSchedule = false
+            showPlaza -> showPlaza = false
+            opened != null -> {
+                opened = null
+                importMessage = ""
+            }
+            tab != 0 -> tab = 0
         }
     }
 

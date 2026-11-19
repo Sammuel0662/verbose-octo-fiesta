@@ -133,16 +133,21 @@ fun ScheduleEditorScreen(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            TextButton(onClick = onBack) { Text("← 返回", fontSize = 13.sp) }
-            Text("逐项自定义调度", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text("", fontSize = 12.sp)
+            TextButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.CenterStart),
+            ) { Text("← 返回", fontSize = 13.sp) }
+            Text(
+                "逐项自定义调度",
+                modifier = Modifier.align(Alignment.Center),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+            )
         }
 
         EditorCard("调度器（governor）", "决定用哪套调频算法。当前生效：${currentGovernor.ifBlank { "未知" }}") {
