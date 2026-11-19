@@ -56,7 +56,15 @@ object ProfileService {
         for ((key, value) in patch) {
             when {
                 key == "governor" -> governor = value
-                key == "limits" && value == "off" -> limitsOff = true
+                key == "limits" -> limitsOff = value == "off"
+                key.startsWith("raw:") -> {
+                    val path = key.removePrefix("raw:")
+                    appended.add(buildJsonArray {
+                        add(JsonPrimitive(path))
+                        add(JsonPrimitive(value))
+                    })
+                    changes += "${path.substringAfterLast('/')} = $value"
+                }
                 key.startsWith("cpu_max_pct_p") ->
                     key.removePrefix("cpu_max_pct_p").toIntOrNull()?.let {
                         value.toIntOrNull()?.let { pct -> maxPct[it] = pct }

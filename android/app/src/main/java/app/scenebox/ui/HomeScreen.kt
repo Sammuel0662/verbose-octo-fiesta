@@ -23,6 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -71,6 +72,11 @@ fun HomeScreen(
     onCleanup: (String) -> Unit,
     liveStatus: String,
     onRefreshStatus: () -> Unit,
+    customText: String,
+    customBusy: Boolean,
+    customMessage: String,
+    onCustomTextChange: (String) -> Unit,
+    onDeployCustom: () -> Unit,
     sampling: Boolean,
     sampleCount: Int,
     sampleFps: List<Int>,
@@ -142,6 +148,33 @@ fun HomeScreen(
                 onImportFile = onImportFile,
                 onOpenFile = onOpenFile,
             )
+
+            Card(title = "自定义参数") {
+                OutlinedTextField(
+                    value = customText,
+                    onValueChange = onCustomTextChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text(
+                            "每行一条，例如：\n上限 80%\n上限 p0 60%\n下限 30%\ngovernor schedutil\n关限制器",
+                            fontSize = 11.sp,
+                        )
+                    },
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    minLines = 3,
+                    maxLines = 6,
+                )
+                Button(
+                    onClick = onDeployCustom,
+                    enabled = !customBusy && customText.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (customBusy) "部署中…" else "一键部署", fontSize = 13.sp)
+                }
+                if (customMessage.isNotBlank()) {
+                    Text(customMessage, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
 
             SampleCard(
                 sampling = sampling,
@@ -538,6 +571,11 @@ private fun DeviceCard(fp: DeviceFingerprint?) {
 
 @Composable
 private fun SampleCard(
+    customText: String,
+    customBusy: Boolean,
+    customMessage: String,
+    onCustomTextChange: (String) -> Unit,
+    onDeployCustom: () -> Unit,
     sampling: Boolean,
     count: Int,
     fps: List<Int>,

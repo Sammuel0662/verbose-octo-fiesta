@@ -31,6 +31,12 @@ object SysfsApply {
             when {
                 key == "governor" -> governor = value
                 key == "limits" -> limitsOff = value == "off"
+                key.startsWith("raw:") -> {
+                    val path = key.removePrefix("raw:")
+                    ops += write(path, value)
+                    detail += "${path.substringAfterLast('/')}=$value"
+                }
+
                 key == "sched_boost" ->
                     ops += "if [ -e /proc/sys/walt/sched_boost ]; then " +
                         "chmod 0664 /proc/sys/walt/sched_boost 2>/dev/null; " +

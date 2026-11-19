@@ -100,6 +100,9 @@ private fun Root() {
     var sampleFps by remember { mutableStateOf(listOf<Int>()) }
     var sampleSummary by remember { mutableStateOf("") }
     var sampleTemps by remember { mutableStateOf(listOf<Float>()) }
+    var customText by remember { mutableStateOf("") }
+    var customBusy by remember { mutableStateOf(false) }
+    var customMessage by remember { mutableStateOf("") }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -184,6 +187,7 @@ private fun Root() {
     val autoOpen = remember { activityIntent?.getStringExtra("open_file") }
     val autoImport = remember { activityIntent?.getBooleanExtra("import_now", false) ?: false }
     val autoSystemReset = remember { activityIntent?.getBooleanExtra("system_reset", false) ?: false }
+    val autoCustom = remember { activityIntent?.getStringExtra("custom_patch") }
     val autoApplyFirst = remember { activityIntent?.getBooleanExtra("apply_first", false) ?: false }
     var autoApplied by remember { mutableStateOf(false) }
 
@@ -193,6 +197,16 @@ private fun Root() {
     }
 
     // 测试/自动化入口：am start ... --ez export_now true
+    LaunchedEffect(autoCustom, capability, fingerprint) {
+        if (!autoCustom.isNullOrBlank() && !autoApplied && capability?.canWriteSysfs == true) {
+            autoApplied = true
+            customText = autoCustom
+            customBusy = true
+            customMessage = withContext(Dispatchers.IO) { deployCustom(autoCustom) }
+            customBusy = false
+        }
+    }
+
     // 自动化：--ez apply_first true 应用广场第一个方案（便于验证）
     // 依赖 capability + fingerprint + plazaIndex 三者都就绪，缺一个就直接返回，
     // 不提前置位 autoApplied，避免"第一条到达时抢跑、后面不再重试"。
@@ -229,6 +243,30 @@ private fun Root() {
                 if (r.ok) "✅ ${r.message}" else "❌ ${r.message}"
             }
         }
+    }
+
+    suspend fun deployCustom(text: String): String {
+        val fpNow = fingerprint ?: return "❌ 缺少本机频点表"
+        val parsed = PatchTextParser.parse(text, fpNow.policies.size)
+        if (parsed.patch.isEmpty()) {
+            return "❌ ${parsed.errors.firstOrNull() ?: "没有可部署的项"}"
+        }
+        val base = if (SceneState.detect().willApply) {
+            val raw = SceneFiles.profile(SuShell)
+            if (raw == null) {
+                "❌ 读不到 Scene 的 profile（需要 root）"
+            } else {
+                val patched = ProfileService.patch(raw, parsed.patch, fpNow)
+                val written = ImportService.writeProfile(patched.profile)
+                if (written.ok) "✅ 已写入 Scene 方案：${parsed.notes.joinToString("、")}"
+                else "❌ ${written.message}"
+            }
+        } else {
+            val r = SysfsApply.apply(parsed.patch, fpNow)
+            if (r.ok) "✅ ${r.message}" else "❌ ${r.message}"
+        }
+        val warn = if (parsed.errors.isEmpty()) "" else "\n⚠ ${parsed.errors.joinToString("；")}"
+        return base + warn
     }
 
     fun startSampling() {
@@ -452,6 +490,18 @@ private fun Root() {
         sampleCount = sampleCount,
         sampleFps = sampleFps,
         sampleSummary = sampleSummary,
+        customText = customText,
+        customBusy = customBusy,
+        customMessage = customMessage,
+        onCustomTextChange = { customText = it },
+        onDeployCustom = {
+            customBusy = true
+            customMessage = "部署中…"
+            scope.launch {
+                customMessage = withContext(Dispatchers.IO) { deployCustom(customText) }
+                customBusy = false
+            }
+        },
         onStartSample = { startSampling() },
         onRefreshStatus = {
             val fpNow = fingerprint
