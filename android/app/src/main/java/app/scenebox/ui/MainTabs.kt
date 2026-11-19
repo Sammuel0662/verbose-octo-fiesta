@@ -79,7 +79,7 @@ fun MainTabs(
                     1.dp,
                     MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
                 ),
-                shadowElevation = 10.dp,
+                shadowElevation = 0.dp,
             ) {
                 Row(
                     modifier = Modifier
