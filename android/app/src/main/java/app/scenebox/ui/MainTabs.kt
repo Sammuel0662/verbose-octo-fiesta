@@ -27,6 +27,7 @@ fun MainTabs(
     tab: Int,
     onTabChange: (Int) -> Unit,
     home: @Composable () -> Unit,
+    nodes: @Composable () -> Unit,
     monitor: @Composable () -> Unit,
     settings: @Composable () -> Unit,
 ) {
@@ -34,7 +35,8 @@ fun MainTabs(
         Box(modifier = Modifier.weight(1f)) {
             when (tab) {
                 0 -> home()
-                1 -> monitor()
+                1 -> nodes()
+                2 -> monitor()
                 else -> settings()
             }
         }
@@ -47,8 +49,9 @@ fun MainTabs(
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             TabItem("调度", tab == 0, Modifier.weight(1f)) { onTabChange(0) }
-            TabItem("监测", tab == 1, Modifier.weight(1f)) { onTabChange(1) }
-            TabItem("设置", tab == 2, Modifier.weight(1f)) { onTabChange(2) }
+            TabItem("节点", tab == 1, Modifier.weight(1f)) { onTabChange(1) }
+            TabItem("监测", tab == 2, Modifier.weight(1f)) { onTabChange(2) }
+            TabItem("设置", tab == 3, Modifier.weight(1f)) { onTabChange(3) }
         }
     }
 }

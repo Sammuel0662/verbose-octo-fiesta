@@ -38,6 +38,7 @@ import app.scenebox.core.SceneFiles
 import app.scenebox.core.SnapshotService
 import app.scenebox.core.FpsSampler
 import app.scenebox.core.LiveStatus
+import app.scenebox.core.NodeBrowser
 import app.scenebox.core.PerfMonitor
 import app.scenebox.core.SceneState
 import app.scenebox.core.SysfsApply
@@ -50,6 +51,7 @@ import app.scenebox.ui.GuideScreen
 import app.scenebox.ui.HomeScreen
 import app.scenebox.ui.MainTabs
 import app.scenebox.ui.MonitorScreen
+import app.scenebox.ui.NodeScreen
 import app.scenebox.ui.SettingsScreen
 import app.scenebox.ui.PlazaScreen
 import app.scenebox.ui.SceneBoxTheme
@@ -121,6 +123,9 @@ private fun Root() {
     var tab by remember { mutableStateOf(0) }
     var hzModes by remember { mutableStateOf(listOf<Int>()) }
     var hzMessage by remember { mutableStateOf("") }
+    var nodes by remember { mutableStateOf(listOf<NodeBrowser.Node>()) }
+    var nodeLoading by remember { mutableStateOf(false) }
+    var nodeMessage by remember { mutableStateOf("") }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -622,6 +627,39 @@ private fun Root() {
             }
         },
     )
+        },
+        nodes = {
+            NodeScreen(
+                groups = NodeBrowser.groups,
+                nodes = nodes,
+                loading = nodeLoading,
+                message = nodeMessage,
+                onLoadGroup = { prefix ->
+                    nodeLoading = true
+                    nodeMessage = ""
+                    scope.launch {
+                        nodes = withContext(Dispatchers.IO) { NodeBrowser.list(prefix) }
+                        nodeLoading = false
+                        nodeMessage = if (nodes.isEmpty()) "这一类没读到可写节点"
+                        else "已加载 ${nodes.size} 个节点：" + prefix
+                    }
+                },
+                onApply = { path, value ->
+                    scope.launch {
+                        val fpNow = fingerprint
+                        if (fpNow == null) {
+                            nodeMessage = "缺少频点表"
+                        } else {
+                            val r = withContext(Dispatchers.IO) {
+                                SysfsApply.apply(listOf("raw:$path" to value), fpNow)
+                            }
+                            nodeMessage = (if (r.ok) "✅ " else "❌ ") + r.message
+                            ActionLog.append(context, "节点", "$path = $value → ${r.message.take(40)}")
+                            logVersion++
+                        }
+                    }
+                },
+            )
         },
         monitor = {
             MonitorScreen(
