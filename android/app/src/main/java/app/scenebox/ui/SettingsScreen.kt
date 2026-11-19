@@ -1,9 +1,13 @@
 package app.scenebox.ui
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -38,6 +42,9 @@ fun SettingsScreen(
     autoRules: String,
     onToggleAuto: (Boolean) -> Unit,
     onSaveAutoRules: (String) -> Unit,
+    installedApps: List<String>,
+    recipeNames: List<String>,
+    onAddRule: (String, String) -> Unit,
     onOpenApps: () -> Unit,
     hudOn: Boolean,
     hudMessage: String,
@@ -118,6 +125,7 @@ fun SettingsScreen(
                 androidx.compose.material3.Switch(checked = autoOn, onCheckedChange = onToggleAuto)
             }
             var rulesText by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(autoRules) }
+    var showAddRule by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
             OutlinedTextField(
                 value = rulesText,
                 onValueChange = { rulesText = it },
@@ -127,8 +135,27 @@ fun SettingsScreen(
                 placeholder = { Text("com.tencent.tmgp.sgame=我的性能", fontSize = 10.sp) },
                 textStyle = MaterialTheme.typography.bodySmall,
             )
-            Button(onClick = { onSaveAutoRules(rulesText) }, modifier = Modifier.fillMaxWidth()) {
-                Text("保存规则", fontSize = 12.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { onSaveAutoRules(rulesText) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("保存规则", fontSize = 12.sp) }
+                Button(
+                    onClick = { showAddRule = true },
+                    modifier = Modifier.weight(1f),
+                    enabled = installedApps.isNotEmpty(),
+                ) { Text("＋ 添加规则", fontSize = 12.sp) }
+            }
+            if (showAddRule) {
+                AddRuleDialog(
+                    apps = installedApps,
+                    recipes = recipeNames,
+                    onDismiss = { showAddRule = false },
+                    onConfirm = { pkg, recipe ->
+                        onAddRule(pkg, recipe)
+                        showAddRule = false
+                    },
+                )
             }
         }
 
@@ -215,4 +242,83 @@ private fun SectionCard(title: String, content: @Composable androidx.compose.fou
             content()
         }
     }
+}
+
+@Composable
+private fun AddRuleDialog(
+    apps: List<String>,
+    recipes: List<String>,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit,
+) {
+    var query by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var pickedApp by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var pickedRecipe by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("添加自动切换规则", fontSize = 15.sp) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("1. 选择应用", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("搜索包名", fontSize = 10.sp) },
+                    textStyle = MaterialTheme.typography.bodySmall,
+                )
+                val filtered = if (query.isBlank()) apps.take(60)
+                else apps.filter { it.contains(query, true) }.take(60)
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp),
+                ) {
+                    items(filtered) { pkg ->
+                        Text(
+                            (if (pickedApp == pkg) "● " else "○ ") + pkg,
+                            fontSize = 11.sp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { pickedApp = pkg }
+                                .padding(vertical = 4.dp),
+                            color = if (pickedApp == pkg) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+                Text("2. 选择配方", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (recipes.isEmpty()) {
+                    Text("还没有配方，先去「逐项自定义」里保存一个", fontSize = 10.sp)
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for (name in recipes.take(3)) {
+                            Text(
+                                name,
+                                fontSize = 11.sp,
+                                modifier = Modifier
+                                    .clickable { pickedRecipe = name }
+                                    .padding(4.dp),
+                                color = if (pickedRecipe == name) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val a = pickedApp
+                    val r = pickedRecipe
+                    if (a != null && r != null) onConfirm(a, r)
+                },
+                enabled = pickedApp != null && pickedRecipe != null,
+            ) { Text("添加") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+    )
 }

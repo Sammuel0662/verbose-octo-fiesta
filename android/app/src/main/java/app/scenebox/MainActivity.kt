@@ -156,6 +156,7 @@ private fun Root() {
     var apps by remember { mutableStateOf(listOf<String>()) }
     var appsLoading by remember { mutableStateOf(false) }
     var appsMessage by remember { mutableStateOf("") }
+    var installedApps by remember { mutableStateOf(listOf<String>()) }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -388,6 +389,9 @@ private fun Root() {
     }
 
     LaunchedEffect(Unit) {
+        installedApps = withContext(Dispatchers.IO) {
+            runCatching { AppGovernance.listUserApps().map { it.pkg } }.getOrDefault(emptyList())
+        }
         autoOn = AutoSwitch.enabled(context)
         autoRules = AutoSwitch.rulesText(context)
         recipes = withContext(Dispatchers.IO) { RecipeStore.list(context) }
@@ -849,6 +853,18 @@ private fun Root() {
                     autoOn = on
                     AutoSwitch.setEnabled(context, on)
                     ActionLog.append(context, "自动切换", if (on) "开启" else "关闭")
+                    logVersion++
+                },
+                installedApps = installedApps,
+                recipeNames = recipes.map { it.name },
+                onAddRule = { pkg, recipe ->
+                    val line = "$pkg=$recipe\n"
+                    val merged = (autoRules + line).trim()
+                    AutoSwitch.saveRules(context, merged)
+                    autoRules = merged
+                    autoOn = true
+                    AutoSwitch.setEnabled(context, true)
+                    ActionLog.append(context, "自动切换", "新增规则 $pkg → $recipe")
                     logVersion++
                 },
                 onSaveAutoRules = { text ->
