@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,18 +46,17 @@ fun MainTabs(
                 .padding(vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            TabItem("调度", 0, tab == 0) { onTabChange(0) }
-            TabItem("监测", 1, tab == 1) { onTabChange(1) }
-            TabItem("设置", 2, tab == 2) { onTabChange(2) }
+            TabItem("调度", tab == 0, Modifier.weight(1f)) { onTabChange(0) }
+            TabItem("监测", tab == 1, Modifier.weight(1f)) { onTabChange(1) }
+            TabItem("设置", tab == 2, Modifier.weight(1f)) { onTabChange(2) }
         }
     }
 }
 
 @Composable
-private fun TabItem(label: String, index: Int, selected: Boolean, onClick: () -> Unit) {
+private fun TabItem(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Column(
-        modifier = Modifier
-            .weight(1f)
+        modifier = modifier
             .clickable(onClick = onClick)
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -43,8 +43,8 @@ fun SettingsScreen(
         if (fp != null) {
             SectionCard(title = "本机信息") {
                 RowLine("机型", fp.model)
-                RowLine("芯片", "${fp.soc} ${fp.platform}")
-                RowLine("系统", "Android ${fp.sdk}")
+                RowLine("芯片", "${fp.socModel} ${fp.socPlatform}")
+                RowLine("系统", "Android ${fp.android} (SDK ${fp.sdk})")
                 for ((key, value) in deviceInfo) RowLine(key, value)
                 Text(
                     "频点：" + fp.policies.joinToString("  ") { "${it.name}:${it.max / 1000}MHz" },
@@ -54,7 +54,7 @@ fun SettingsScreen(
             }
         }
 
-        Card(title = "声明与边界") {
+        SectionCard(title = "声明与边界") {
             Text(
                 "1. 本工具不修改 Scene 的 APK、不绕过它的授权；Scene Pro 请通过官方渠道购买。\n\n" +
                     "2. 自定义参数直接写入内核节点，属于高风险操作：可能引起发热、掉帧、耗电增加，"
@@ -69,7 +69,7 @@ fun SettingsScreen(
             )
         }
 
-        Card(title = "教程与维护") {
+        SectionCard(title = "教程与维护") {
             OutlinedButton(onClick = onOpenGuide, modifier = Modifier.fillMaxWidth()) {
                 Text("查看使用教程", fontSize = 13.sp)
             }
