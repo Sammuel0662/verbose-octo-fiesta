@@ -23,6 +23,11 @@ import app.scenebox.core.DeviceFingerprint
 fun SettingsScreen(
     fp: DeviceFingerprint?,
     deviceInfo: List<Pair<String, String>>,
+    hzModes: List<Int>,
+    currentHz: Int,
+    hzMessage: String,
+    onSetHz: (Int) -> Unit,
+    onResetHz: () -> Unit,
     onOpenGuide: () -> Unit,
     onClearLog: () -> Unit,
 ) {
@@ -51,6 +56,34 @@ fun SettingsScreen(
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+
+        SectionCard(title = "刷新率") {
+            Text(
+                "当前 ${currentHz}Hz。锁定后切一次应用生效；部分机型需要亮屏一次。",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (hzModes.isEmpty()) {
+                Text("读不到面板支持的刷新率", fontSize = 11.sp)
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (hz in hzModes) {
+                        OutlinedButton(
+                            onClick = { onSetHz(hz) },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("${hz}Hz", fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+            TextButton(onClick = onResetHz) {
+                Text("恢复自动刷新率", fontSize = 12.sp)
+            }
+            if (hzMessage.isNotBlank()) {
+                Text(hzMessage, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 

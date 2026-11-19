@@ -26,6 +26,8 @@ import app.scenebox.core.ActionLog
 import app.scenebox.core.CapabilityProbe
 import app.scenebox.core.DeviceInfoFull
 import app.scenebox.core.Diagnostics
+import app.scenebox.core.DisplayControl
+import app.scenebox.core.SampleStore
 import app.scenebox.core.DeviceFingerprint
 import app.scenebox.core.ShizukuBridge
 import app.scenebox.sbox.ExportService
@@ -117,6 +119,8 @@ private fun Root() {
     var logLines by remember { mutableStateOf(listOf<String>()) }
     var logVersion by remember { mutableStateOf(0) }
     var tab by remember { mutableStateOf(0) }
+    var hzModes by remember { mutableStateOf(listOf<Int>()) }
+    var hzMessage by remember { mutableStateOf("") }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -294,17 +298,52 @@ private fun Root() {
             }
             sampling = false
             val valid = fpsList.filter { it in 1..240 }
+            val lowFps = withContext(Dispatchers.IO) { FpsSampler.onePercentLow(pkg) }
+            val stats = withContext(Dispatchers.IO) { FpsSampler.frameStats(pkg) }
+            val governor = withContext(Dispatchers.IO) {
+                SuShell.exec("cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor 2>/dev/null", 8L)
+                    .text().trim()
+            }
+            val maxFreqs = withContext(Dispatchers.IO) {
+                SuShell.exec(
+                    "for p in 0 2 5 7; do cat /sys/devices/system/cpu/cpufreq/policy$p/scaling_max_freq 2>/dev/null; done",
+                    8L,
+                ).text().trim().lines().joinToString("/")
+            }
+            val record = SampleStore.Record(
+                id = "s" + System.currentTimeMillis(),
+                time = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.US)
+                    .format(java.util.Date()),
+                pkg = pkg,
+                avgFps = if (valid.isEmpty()) 0 else valid.average().toInt(),
+                lowFps = lowFps,
+                jankPercent = stats?.jankPercent ?: 0f,
+                maxTemp = tempList.maxOrNull() ?: 0f,
+                minTemp = tempList.minOrNull() ?: 0f,
+                governor = governor,
+                maxFreqs = maxFreqs,
+            )
+            withContext(Dispatchers.IO) { SampleStore.save(context, record) }
+            val compare = withContext(Dispatchers.IO) { SampleStore.compareWithPrevious(context, record) }
             sampleSummary = buildString {
                 append("前台 $pkg")
                 append("\n帧率 ")
                 append(
                     if (valid.isEmpty()) "无有效样本（可能画面静止）"
-                    else "均值 ${valid.average().toInt()} / 峰值 ${valid.maxOrNull()} / 最低 ${valid.minOrNull()} FPS"
+                    else "均值 ${record.avgFps} / 峰值 ${valid.maxOrNull()} / 最低 ${valid.minOrNull()} FPS"
                 )
-                if (tempList.isNotEmpty()) {
-                    append("\n温度 ${tempList.first()}℃ → ${tempList.last()}℃，最高 ${tempList.maxOrNull()}℃")
+                if (lowFps > 0) append("\n1% low $lowFps FPS")
+                if (stats != null) {
+                    append("\njank ${stats.jankPercent}%  帧耗时 P50 ${stats.p50}ms / P90 ${stats.p90}ms")
                 }
+                if (tempList.isNotEmpty()) {
+                    append("\n温度 ${tempList.first()}℃ → ${tempList.last()}℃，最高 ${record.maxTemp}℃")
+                }
+                append("\n方案 governor=$governor 上限=$maxFreqs")
+                append("\n\n$compare")
             }
+            ActionLog.append(context, "采样", "$pkg 均值${record.avgFps} 1%low$lowFps 最高温${record.maxTemp}℃")
+            logVersion++
         }
     }
 
@@ -314,6 +353,7 @@ private fun Root() {
     }
 
     LaunchedEffect(Unit) {
+        hzModes = DisplayControl.modes(context)
         val info = withContext(Dispatchers.IO) { DeviceInfoFull.collect(context) }
         deviceInfo = info.lines()
     }
@@ -629,6 +669,22 @@ private fun Root() {
             SettingsScreen(
                 fp = fingerprint,
                 deviceInfo = deviceInfo,
+                hzModes = hzModes,
+                currentHz = DisplayControl.current(context),
+                hzMessage = hzMessage,
+                onSetHz = { hz ->
+                    scope.launch {
+                        hzMessage = withContext(Dispatchers.IO) { DisplayControl.setHz(hz) }
+                        ActionLog.append(context, "刷新率", "锁定 ${hz}Hz → $hzMessage")
+                        logVersion++
+                    }
+                },
+                onResetHz = {
+                    scope.launch {
+                        hzMessage = withContext(Dispatchers.IO) { DisplayControl.reset() }
+                        logVersion++
+                    }
+                },
                 onOpenGuide = { showGuide = true },
                 onClearLog = {
                     scope.launch {

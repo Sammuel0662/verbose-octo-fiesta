@@ -40,6 +40,56 @@ object FpsSampler {
         return match?.groupValues?.get(1)?.toIntOrNull() ?: 0
     }
 
+    /** gfxinfo 里的卡顿与分位数据 */
+    data class FrameStats(
+        val jankPercent: Float,
+        val p50: Int,
+        val p90: Int,
+        val p99: Int,
+    )
+
+    fun frameStats(pkg: String): FrameStats? {
+        val text = SuShell.exec("dumpsys gfxinfo $pkg 2>/dev/null", 15L).text()
+        if (text.isBlank()) return null
+        val jank = Regex("Janky frames:\\s*\\d+\\s*\\(([\\d.]+)%\\)").find(text)
+            ?.groupValues?.get(1)?.toFloatOrNull() ?: 0f
+        fun pct(n: Int): Int = Regex("$n(th|st|nd|rd) percentile:\\s*(\\d+)ms").find(text)
+            ?.groupValues?.get(2)?.toIntOrNull() ?: 0
+        val p50 = pct(50)
+        if (p50 == 0) return null
+        return FrameStats(jank, p50, pct(90), pct(99))
+    }
+
+    /**
+     * 1% low：从 framestats 的逐帧时间戳算 P99 帧耗时，再换算成帧率。
+     * 取不到返回 0。
+     */
+    fun onePercentLow(pkg: String): Int {
+        val text = SuShell.exec("dumpsys gfxinfo $pkg framestats 2>/dev/null", 20L).text()
+        if (text.isBlank()) return 0
+        val nsPerMs = 1_000_000.0
+        val durations = mutableListOf<Double>()
+        var inData = false
+        for (line in text.lineSequence()) {
+            if (line.startsWith("---PROFILEDATA---")) {
+                if (inData) break else { inData = true; continue }
+            }
+            if (!inData) continue
+            val cols = line.split(",")
+            if (cols.size < 13) continue
+            val intended = cols[1].toLongOrNull() ?: continue
+            val completed = cols[12].toLongOrNull() ?: continue
+            if (intended <= 0 || completed <= 0 || completed < intended) continue
+            val ms = (completed - intended) / nsPerMs
+            if (ms in 0.1..500.0) durations += ms
+        }
+        if (durations.size < 20) return 0
+        durations.sort()
+        val p99 = durations[((durations.size - 1) * 0.99).toInt()]
+        if (p99 <= 0) return 0
+        return (1000.0 / p99).toInt().coerceIn(0, 240)
+    }
+
     fun temperature(context: Context): Float {
         val intent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         val tenths = intent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1) ?: -1
