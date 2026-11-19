@@ -48,12 +48,17 @@ fun MainTabs(
     monitor: @Composable () -> Unit,
     settings: @Composable () -> Unit,
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        Box(modifier = Modifier.weight(1f)) {
+        // 内容铺满，底部留出 96dp，滚到底时不会被菜单挡住
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 96.dp),
+        ) {
             Crossfade(
                 targetState = tab,
                 animationSpec = tween(durationMillis = 220),
@@ -70,6 +75,7 @@ fun MainTabs(
 
         Box(
             modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 10.dp),
@@ -77,7 +83,7 @@ fun MainTabs(
         ) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
                 shape = RoundedCornerShape(26.dp),
                 border = BorderStroke(
                     1.dp,
