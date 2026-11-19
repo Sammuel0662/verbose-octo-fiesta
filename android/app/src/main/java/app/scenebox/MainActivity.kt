@@ -46,6 +46,9 @@ import app.scenebox.sbox.SboxBundle
 import app.scenebox.sbox.SboxStore
 import app.scenebox.ui.GuideScreen
 import app.scenebox.ui.HomeScreen
+import app.scenebox.ui.MainTabs
+import app.scenebox.ui.MonitorScreen
+import app.scenebox.ui.SettingsScreen
 import app.scenebox.ui.PlazaScreen
 import app.scenebox.ui.SceneBoxTheme
 import app.scenebox.ui.StartupNoticeDialog
@@ -113,6 +116,7 @@ private fun Root() {
     var diagBusy by remember { mutableStateOf(false) }
     var logLines by remember { mutableStateOf(listOf<String>()) }
     var logVersion by remember { mutableStateOf(0) }
+    var tab by remember { mutableStateOf(0) }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -455,6 +459,10 @@ private fun Root() {
 
     val current = opened
     if (current == null) {
+    MainTabs(
+        tab = tab,
+        onTabChange = { tab = it },
+        home = {
     HomeScreen(
         cap = capability,
         fp = fingerprint,
@@ -574,6 +582,63 @@ private fun Root() {
             }
         },
     )
+        },
+        monitor = {
+            MonitorScreen(
+                cap = capability,
+                fp = fingerprint,
+                liveStatus = liveStatus,
+                onRefreshStatus = {
+                    val fpNow = fingerprint
+                    if (fpNow != null) {
+                        scope.launch {
+                            liveStatus = withContext(Dispatchers.IO) {
+                                LiveStatus.read(context, fpNow).text() + "\n" + PerfMonitor.read(fpNow)
+                            }
+                        }
+                    }
+                },
+                sampling = sampling,
+                sampleCount = sampleCount,
+                sampleFps = sampleFps,
+                sampleSummary = sampleSummary,
+                onStartSample = { startSampling() },
+                checks = checks,
+                diagBusy = diagBusy,
+                onRunDiagnostics = {
+                    diagBusy = true
+                    scope.launch {
+                        val fpNow = fingerprint
+                        checks = withContext(Dispatchers.IO) { Diagnostics.run(context, fpNow, capability) }
+                        diagBusy = false
+                        ActionLog.append(context, "检测", "环境自检 ${checks.count { it.ok }}/${checks.size} 通过")
+                        logVersion++
+                    }
+                },
+                logLines = logLines,
+                onRefreshLog = { logVersion++ },
+                onClearLog = {
+                    scope.launch {
+                        withContext(Dispatchers.IO) { ActionLog.clear(context) }
+                        logVersion++
+                    }
+                },
+            )
+        },
+        settings = {
+            SettingsScreen(
+                fp = fingerprint,
+                deviceInfo = deviceInfo,
+                onOpenGuide = { showGuide = true },
+                onClearLog = {
+                    scope.launch {
+                        withContext(Dispatchers.IO) { ActionLog.clear(context) }
+                        logVersion++
+                    }
+                },
+            )
+        },
+    )
     } else {
         PreviewScreen(
             bundle = current.second,
@@ -604,7 +669,7 @@ private fun Root() {
 
 private suspend fun deployCustomPatch(text: String, fingerprint: DeviceFingerprint?): String {
         val fpNow = fingerprint ?: return "❌ 缺少本机频点表"
-        val parsed = PatchTextParser.parse(text, fpNow.policies.size)
+        val parsed = PatchTextParser.parse(text, fpNow)
         if (parsed.patch.isEmpty()) {
             return "❌ ${parsed.errors.firstOrNull() ?: "没有可部署的项"}"
         }

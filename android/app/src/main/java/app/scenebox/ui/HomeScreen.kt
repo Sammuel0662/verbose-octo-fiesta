@@ -134,15 +134,6 @@ fun HomeScreen(
 
             StatusCard(cap)
 
-            Card(title = "实时状态") {
-                if (liveStatus.isBlank()) {
-                    Text("读取中…", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    Text(liveStatus, fontSize = 11.sp, lineHeight = 16.sp)
-                }
-                TextButton(onClick = onRefreshStatus) { Text("刷新一次", fontSize = 12.sp) }
-            }
-
             SnapshotCard(
                 enabled = cap?.canSnapshotRestore == true,
                 message = snapshotMessage,
@@ -208,87 +199,12 @@ fun HomeScreen(
                 }
             }
 
-            SampleCard(
-                sampling = sampling,
-                count = sampleCount,
-                fps = sampleFps,
-                summary = sampleSummary,
-                onStart = onStartSample,
-            )
-
             CleanupCard(
                 canReset = cap?.canSnapshotRestore == true,
                 canRestoreImport = cap?.canApplyConfig == true,
                 message = cleanupMessage,
                 onAction = { pendingCleanup = it },
             )
-
-            DeviceCard(fp, deviceInfo)
-
-            Card(title = "环境检测") {
-                Button(
-                    onClick = onRunDiagnostics,
-                    enabled = !diagBusy,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(if (diagBusy) "检测中…" else "运行完整检测", fontSize = 13.sp)
-                }
-                if (checks.isEmpty()) {
-                    Text(
-                        "检查 root、Shizuku、Scene 状态、频点表、可写性、温控与 GPU 节点",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    for (check in checks) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Text(
-                                if (check.ok) "✓" else "✗",
-                                fontSize = 12.sp,
-                                color = if (check.ok) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.error,
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(check.name, fontSize = 12.sp)
-                                Text(
-                                    check.detail,
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Card(title = "操作日志") {
-                if (logLines.isEmpty()) {
-                    Text("还没有操作记录", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    for (line in logLines) {
-                        Text(line, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = onRefreshLog) { Text("刷新", fontSize = 12.sp) }
-                    TextButton(onClick = onClearLog) { Text("清空日志", fontSize = 12.sp) }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                TextButton(onClick = onRefresh, enabled = !busy) {
-                    Text("重新检测", fontSize = 12.sp)
-                }
-                TextButton(onClick = onRequestShizuku, enabled = !busy) {
-                    Text("申请 Shizuku", fontSize = 12.sp)
-                }
-            }
 
             if (exportMessage.isNotBlank()) {
                 Note(exportMessage)
