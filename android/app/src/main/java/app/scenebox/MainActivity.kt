@@ -153,7 +153,7 @@ private fun Root() {
     var autoRules by remember { mutableStateOf("") }
     var recipes by remember { mutableStateOf(listOf<RecipeStore.Recipe>()) }
     var showApps by remember { mutableStateOf(false) }
-    var apps by remember { mutableStateOf(listOf<String>()) }
+    var apps by remember { mutableStateOf(listOf<AppGovernance.AppInfo>()) }
     var appsLoading by remember { mutableStateOf(false) }
     var appsMessage by remember { mutableStateOf("") }
     var installedApps by remember { mutableStateOf(listOf<String>()) }
@@ -392,6 +392,10 @@ private fun Root() {
         installedApps = withContext(Dispatchers.IO) {
             runCatching { AppGovernance.listUserApps().map { it.pkg } }.getOrDefault(emptyList())
         }
+        // 悬浮窗只在用户主动开启后运行；进 App 时确保不会自行启动
+        val hudPrefs = context.getSharedPreferences("scenebox", android.content.Context.MODE_PRIVATE)
+        hudOn = hudPrefs.getBoolean("hud_enabled", false)
+        if (!hudOn) HudService.stop(context)
         autoOn = AutoSwitch.enabled(context)
         autoRules = AutoSwitch.rulesText(context)
         recipes = withContext(Dispatchers.IO) { RecipeStore.list(context) }
@@ -487,7 +491,7 @@ private fun Root() {
             onRefresh = {
                 appsLoading = true
                 scope.launch {
-                    apps = withContext(Dispatchers.IO) { AppGovernance.listUserApps().map { it.pkg } }
+                    apps = withContext(Dispatchers.IO) { AppGovernance.loadApps(context) }
                     appsLoading = false
                     appsMessage = "已加载 ${apps.size} 个应用"
                 }
@@ -877,7 +881,7 @@ private fun Root() {
                     showApps = true
                     appsLoading = true
                     scope.launch {
-                        apps = withContext(Dispatchers.IO) { AppGovernance.listUserApps().map { it.pkg } }
+                        apps = withContext(Dispatchers.IO) { AppGovernance.loadApps(context) }
                         appsLoading = false
                     }
                 },
@@ -898,12 +902,16 @@ private fun Root() {
                     } else if (hudOn) {
                         HudService.stop(ctx)
                         hudOn = false
+                        ctx.getSharedPreferences("scenebox", android.content.Context.MODE_PRIVATE)
+                            .edit().putBoolean("hud_enabled", false).apply()
                         hudMessage = "已关闭悬浮控制"
                         ActionLog.append(ctx, "悬浮窗", "关闭")
                         logVersion++
                     } else {
                         HudService.start(ctx)
                         hudOn = true
+                        ctx.getSharedPreferences("scenebox", android.content.Context.MODE_PRIVATE)
+                            .edit().putBoolean("hud_enabled", true).apply()
                         hudMessage = "已开启，桌面上可拖动的小面板"
                         ActionLog.append(ctx, "悬浮窗", "开启")
                         logVersion++

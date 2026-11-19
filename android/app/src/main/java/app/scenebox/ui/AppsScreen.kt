@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -20,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,7 +33,7 @@ import app.scenebox.core.AppGovernance
  */
 @Composable
 fun AppsScreen(
-    apps: List<String>,
+    apps: List<AppGovernance.AppInfo>,
     loading: Boolean,
     message: String,
     onRefresh: () -> Unit,
@@ -86,11 +88,27 @@ fun AppsScreen(
             )
         }
 
-        val filtered = if (query.isBlank()) apps else apps.filter { it.contains(query, true) }
+        val filtered = if (query.isBlank()) apps
+        else apps.filter { it.pkg.contains(query, true) || it.label.contains(query, true) }
         LazyColumn(modifier = Modifier.weight(1f)) {
-            items(filtered) { pkg ->
+            items(filtered) { app ->
+                val pkg = app.pkg
                 Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                    Text(pkg, fontSize = 11.sp, maxLines = 1)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        app.icon?.let { bmp ->
+                            androidx.compose.foundation.Image(
+                                bitmap = bmp.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .padding(end = 8.dp),
+                            )
+                        }
+                        Column {
+                            Text(app.label, fontSize = 12.sp, maxLines = 1)
+                            Text(pkg, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                        }
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         TextButton(onClick = { onSuspend(pkg) }) { Text("冻结", fontSize = 11.sp) }
                         TextButton(onClick = { onUnsuspend(pkg) }) { Text("解冻", fontSize = 11.sp) }

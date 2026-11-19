@@ -8,6 +8,30 @@ object AppGovernance {
 
     data class App(val pkg: String, val label: String)
 
+    data class AppInfo(val pkg: String, val label: String, val icon: android.graphics.Bitmap?)
+
+    /** 带名称和图标的用户应用列表（图标转成 Bitmap 便于 Compose 显示） */
+    fun loadApps(context: android.content.Context): List<AppInfo> {
+        val pm = context.packageManager
+        return listUserApps().map { app ->
+            val info = runCatching { pm.getApplicationInfo(app.pkg, 0) }.getOrNull()
+            val label = info?.let { runCatching { pm.getApplicationLabel(it).toString() }.getOrNull() }
+                ?: app.pkg
+            val icon = info?.let {
+                runCatching {
+                    val drawable = pm.getApplicationIcon(it)
+                    val w = (48 * context.resources.displayMetrics.density).toInt().coerceAtLeast(48)
+                    val bmp = android.graphics.Bitmap.createBitmap(w, w, android.graphics.Bitmap.Config.ARGB_8888)
+                    val canvas = android.graphics.Canvas(bmp)
+                    drawable.setBounds(0, 0, w, w)
+                    drawable.draw(canvas)
+                    bmp
+                }.getOrNull()
+            }
+            AppInfo(app.pkg, label, icon)
+        }
+    }
+
     fun listUserApps(): List<App> {
         val out = SuShell.exec("pm list packages -3 2>/dev/null", 25L).text()
         return out.lineSequence()
