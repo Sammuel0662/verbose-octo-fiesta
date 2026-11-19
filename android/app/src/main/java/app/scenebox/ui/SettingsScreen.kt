@@ -92,7 +92,7 @@ private fun RowLine(key: String, value: String) {
 }
 
 @androidx.compose.runtime.Composable
-private fun SectionCard(title: String, content: @androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+private fun SectionCard(title: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     androidx.compose.material3.Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
