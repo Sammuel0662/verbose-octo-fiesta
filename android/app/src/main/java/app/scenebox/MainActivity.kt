@@ -203,7 +203,7 @@ private fun Root() {
             autoApplied = true
             customText = autoCustom
             customBusy = true
-            customMessage = withContext(Dispatchers.IO) { deployCustom(autoCustom) }
+            customMessage = withContext(Dispatchers.IO) { deployCustomPatch(autoCustom, fingerprint) }
             customBusy = false
         }
     }
@@ -244,30 +244,6 @@ private fun Root() {
                 if (r.ok) "✅ ${r.message}" else "❌ ${r.message}"
             }
         }
-    }
-
-    suspend fun deployCustom(text: String): String {
-        val fpNow = fingerprint ?: return "❌ 缺少本机频点表"
-        val parsed = PatchTextParser.parse(text, fpNow.policies.size)
-        if (parsed.patch.isEmpty()) {
-            return "❌ ${parsed.errors.firstOrNull() ?: "没有可部署的项"}"
-        }
-        val base = if (SceneState.detect().willApply) {
-            val raw = SceneFiles.profile(SuShell)
-            if (raw == null) {
-                "❌ 读不到 Scene 的 profile（需要 root）"
-            } else {
-                val patched = ProfileService.patch(raw, parsed.patch, fpNow)
-                val written = ImportService.writeProfile(patched.profile)
-                if (written.ok) "✅ 已写入 Scene 方案：${parsed.notes.joinToString("、")}"
-                else "❌ ${written.message}"
-            }
-        } else {
-            val r = SysfsApply.apply(parsed.patch, fpNow)
-            if (r.ok) "✅ ${r.message}" else "❌ ${r.message}"
-        }
-        val warn = if (parsed.errors.isEmpty()) "" else "\n⚠ ${parsed.errors.joinToString("；")}"
-        return base + warn
     }
 
     fun startSampling() {
@@ -499,7 +475,7 @@ private fun Root() {
             customBusy = true
             customMessage = "部署中…"
             scope.launch {
-                customMessage = withContext(Dispatchers.IO) { deployCustom(customText) }
+                customMessage = withContext(Dispatchers.IO) { deployCustomPatch(customText, fingerprint) }
                 customBusy = false
             }
         },
@@ -573,3 +549,27 @@ private fun Root() {
         )
     }
 }
+
+private suspend fun deployCustomPatch(text: String, fingerprint: DeviceFingerprint?): String {
+        val fpNow = fingerprint ?: return "❌ 缺少本机频点表"
+        val parsed = PatchTextParser.parse(text, fpNow.policies.size)
+        if (parsed.patch.isEmpty()) {
+            return "❌ ${parsed.errors.firstOrNull() ?: "没有可部署的项"}"
+        }
+        val base = if (SceneState.detect().willApply) {
+            val raw = SceneFiles.profile(SuShell)
+            if (raw == null) {
+                "❌ 读不到 Scene 的 profile（需要 root）"
+            } else {
+                val patched = ProfileService.patch(raw, parsed.patch, fpNow)
+                val written = ImportService.writeProfile(patched.profile)
+                if (written.ok) "✅ 已写入 Scene 方案：${parsed.notes.joinToString("、")}"
+                else "❌ ${written.message}"
+            }
+        } else {
+            val r = SysfsApply.apply(parsed.patch, fpNow)
+            if (r.ok) "✅ ${r.message}" else "❌ ${r.message}"
+        }
+        val warn = if (parsed.errors.isEmpty()) "" else "\n⚠ ${parsed.errors.joinToString("；")}"
+        return base + warn
+    }
