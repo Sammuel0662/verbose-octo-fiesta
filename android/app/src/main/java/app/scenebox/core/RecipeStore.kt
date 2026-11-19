@@ -35,4 +35,15 @@ object RecipeStore {
     } catch (_: Throwable) {
         false
     }
+
+    /** 把补丁列表序列化成配方文本（一行 key=value） */
+    fun encode(patch: List<Pair<String, String>>): String =
+        patch.joinToString("\n") { (k, v) -> "$k=$v" }
+
+    /** 配方文本解析回补丁列表 */
+    fun decode(body: String): List<Pair<String, String>> =
+        body.lineSequence().mapNotNull { line ->
+            val idx = line.indexOf('=')
+            if (idx <= 0) null else line.substring(0, idx).trim() to line.substring(idx + 1).trim()
+        }.toList()
 }

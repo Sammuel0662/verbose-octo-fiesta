@@ -23,7 +23,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import app.scenebox.MainActivity
 import app.scenebox.core.DeviceFingerprint
+import app.scenebox.core.AutoSwitch
 import app.scenebox.core.DisplayControl
+import app.scenebox.core.RecipeStore
+import app.scenebox.core.SuShell
 import app.scenebox.core.SysfsApply
 
 /**
@@ -48,6 +51,44 @@ class HudService : Service() {
         startForeground(NOTIFICATION_ID, buildNotification())
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         showPanel()
+        main.postDelayed(autoTask, 5000)
+    }
+
+    private var lastPkg = ""
+
+    /** 每 4 秒看一眼前台应用，命中规则就套用对应配方 */
+    private val autoTask = object : Runnable {
+        override fun run() {
+            runCatching {
+                if (AutoSwitch.enabled(this@HudService)) {
+                    val focus = SuShell.exec(
+                        "dumpsys window 2>/dev/null | grep -m1 mCurrentFocus", 8L,
+                    ).text()
+                    val pkg = Regex("([a-zA-Z][a-zA-Z0-9_]*(?:\\.[a-zA-Z0-9_]+)+)/")
+                        .find(focus)?.groupValues?.get(1)
+                    if (!pkg.isNullOrBlank() && pkg != lastPkg) {
+                        lastPkg = pkg
+                        val recipeName = AutoSwitch.match(this@HudService, pkg)
+                        if (recipeName != null) {
+                            val body = RecipeStore.list(this@HudService)
+                                .firstOrNull { it.name == recipeName }?.body
+                            if (body != null) {
+                                val patch = RecipeStore.decode(body)
+                                if (patch.isNotEmpty()) {
+                                    val fp = DeviceFingerprint.collect()
+                                    val r = SysfsApply.apply(patch, fp)
+                                    setStatus(
+                                        if (r.ok) "自动应用：$recipeName（${pkg.substringAfterLast('.')}）"
+                                        else "自动失败：${r.message.take(18)}",
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            main.postDelayed(this, 4000)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

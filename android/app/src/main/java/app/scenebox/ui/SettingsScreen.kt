@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -29,6 +30,11 @@ fun SettingsScreen(
     hzMessage: String,
     onSetHz: (Int) -> Unit,
     onResetHz: () -> Unit,
+    autoOn: Boolean,
+    autoRules: String,
+    onToggleAuto: (Boolean) -> Unit,
+    onSaveAutoRules: (String) -> Unit,
+    onOpenApps: () -> Unit,
     hudOn: Boolean,
     hudMessage: String,
     onToggleHud: () -> Unit,
@@ -89,6 +95,47 @@ fun SettingsScreen(
             }
             if (hzMessage.isNotBlank()) {
                 Text(hzMessage, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        SectionCard(title = "按应用自动切换") {
+            Text(
+                "前台应用匹配到规则时，自动应用对应配方（配方在「逐项自定义」里保存）。" +
+                    "需要开启悬浮控制保持后台运行。一行一条：包名=配方名",
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(if (autoOn) "已开启" else "已关闭", fontSize = 12.sp)
+                androidx.compose.material3.Switch(checked = autoOn, onCheckedChange = onToggleAuto)
+            }
+            var rulesText by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(autoRules) }
+            OutlinedTextField(
+                value = rulesText,
+                onValueChange = { rulesText = it },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 5,
+                placeholder = { Text("com.tencent.tmgp.sgame=我的性能", fontSize = 10.sp) },
+                textStyle = MaterialTheme.typography.bodySmall,
+            )
+            Button(onClick = { onSaveAutoRules(rulesText) }, modifier = Modifier.fillMaxWidth()) {
+                Text("保存规则", fontSize = 12.sp)
+            }
+        }
+
+        SectionCard(title = "应用治理") {
+            Text(
+                "冻结/解冻应用、调整待机分组。只调用 pm / am 命令，不改应用数据。",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(onClick = onOpenApps, modifier = Modifier.fillMaxWidth()) {
+                Text("打开应用列表", fontSize = 13.sp)
             }
         }
 

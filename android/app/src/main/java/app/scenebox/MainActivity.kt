@@ -28,6 +28,9 @@ import app.scenebox.core.CapabilityProbe
 import app.scenebox.core.DeviceInfoFull
 import app.scenebox.core.Diagnostics
 import app.scenebox.core.DisplayControl
+import app.scenebox.core.AppGovernance
+import app.scenebox.core.AutoSwitch
+import app.scenebox.core.RecipeStore
 import app.scenebox.core.SampleStore
 import app.scenebox.hud.HudService
 import app.scenebox.core.DeviceFingerprint
@@ -53,6 +56,7 @@ import app.scenebox.ui.GuideScreen
 import app.scenebox.ui.HomeScreen
 import app.scenebox.ui.MainTabs
 import app.scenebox.ui.MonitorScreen
+import app.scenebox.ui.AppsScreen
 import app.scenebox.ui.NodeScreen
 import app.scenebox.ui.ScheduleEditorScreen
 import app.scenebox.ui.SettingsScreen
@@ -145,6 +149,13 @@ private fun Root() {
     var currentGovernor by remember { mutableStateOf("") }
     var hudOn by remember { mutableStateOf(false) }
     var hudMessage by remember { mutableStateOf("") }
+    var autoOn by remember { mutableStateOf(false) }
+    var autoRules by remember { mutableStateOf("") }
+    var recipes by remember { mutableStateOf(listOf<RecipeStore.Recipe>()) }
+    var showApps by remember { mutableStateOf(false) }
+    var apps by remember { mutableStateOf(listOf<String>()) }
+    var appsLoading by remember { mutableStateOf(false) }
+    var appsMessage by remember { mutableStateOf("") }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -377,6 +388,9 @@ private fun Root() {
     }
 
     LaunchedEffect(Unit) {
+        autoOn = AutoSwitch.enabled(context)
+        autoRules = AutoSwitch.rulesText(context)
+        recipes = withContext(Dispatchers.IO) { RecipeStore.list(context) }
         currentGovernor = withContext(Dispatchers.IO) {
             SuShell.exec("/sys/devices/system/cpu/cpufreq/policy0/scaling_governor 2>/dev/null", 8L).text().trim()
         }
@@ -461,11 +475,76 @@ private fun Root() {
         return
     }
 
+    if (showApps) {
+        AppsScreen(
+            apps = apps,
+            loading = appsLoading,
+            message = appsMessage,
+            onRefresh = {
+                appsLoading = true
+                scope.launch {
+                    apps = withContext(Dispatchers.IO) { AppGovernance.listUserApps().map { it.pkg } }
+                    appsLoading = false
+                    appsMessage = "已加载 ${apps.size} 个应用"
+                }
+            },
+            onSuspend = { pkg ->
+                scope.launch {
+                    appsMessage = withContext(Dispatchers.IO) { AppGovernance.suspend(pkg) }
+                    ActionLog.append(context, "治理", appsMessage)
+                    logVersion++
+                }
+            },
+            onUnsuspend = { pkg ->
+                scope.launch {
+                    appsMessage = withContext(Dispatchers.IO) { AppGovernance.unsuspend(pkg) }
+                }
+            },
+            onStandby = { pkg, bucket ->
+                scope.launch {
+                    appsMessage = withContext(Dispatchers.IO) { AppGovernance.setStandby(pkg, bucket) }
+                }
+            },
+            onBack = { showApps = false },
+        )
+        return
+    }
+
     if (showSchedule) {
         ScheduleEditorScreen(
             policies = fingerprint?.policies ?: emptyList(),
             governors = governors,
             currentGovernor = currentGovernor,
+            recipes = recipes,
+            onSaveRecipe = { name, body ->
+                scope.launch {
+                    val ok = withContext(Dispatchers.IO) { RecipeStore.save(context, name, body) }
+                    recipes = withContext(Dispatchers.IO) { RecipeStore.list(context) }
+                    scheduleMessage = if (ok) "已保存配方：$name" else "保存失败"
+                    ActionLog.append(context, "配方", "保存 $name")
+                    logVersion++
+                }
+            },
+            onApplyRecipe = { name ->
+                scope.launch {
+                    val body = withContext(Dispatchers.IO) {
+                        RecipeStore.list(context).firstOrNull { it.name == name }?.body
+                    }
+                    if (body != null) {
+                        scheduleMessage = withContext(Dispatchers.IO) {
+                            val fpNow = fingerprint
+                            if (fpNow == null) "❌ 缺少频点表"
+                            else deployPatchList(RecipeStore.decode(body), fpNow)
+                        }
+                    }
+                }
+            },
+            onDeleteRecipe = { name ->
+                scope.launch {
+                    withContext(Dispatchers.IO) { RecipeStore.delete(context, name) }
+                    recipes = withContext(Dispatchers.IO) { RecipeStore.list(context) }
+                }
+            },
             message = scheduleMessage,
             busy = scheduleBusy,
             onBack = { showSchedule = false },
@@ -764,6 +843,28 @@ private fun Root() {
             SettingsScreen(
                 fp = fingerprint,
                 deviceInfo = deviceInfo,
+                autoOn = autoOn,
+                autoRules = autoRules,
+                onToggleAuto = { on ->
+                    autoOn = on
+                    AutoSwitch.setEnabled(context, on)
+                    ActionLog.append(context, "自动切换", if (on) "开启" else "关闭")
+                    logVersion++
+                },
+                onSaveAutoRules = { text ->
+                    AutoSwitch.saveRules(context, text)
+                    autoRules = text
+                    autoOn = true
+                    AutoSwitch.setEnabled(context, true)
+                },
+                onOpenApps = {
+                    showApps = true
+                    appsLoading = true
+                    scope.launch {
+                        apps = withContext(Dispatchers.IO) { AppGovernance.listUserApps().map { it.pkg } }
+                        appsLoading = false
+                    }
+                },
                 hudOn = hudOn,
                 hudMessage = hudMessage,
                 onToggleHud = {

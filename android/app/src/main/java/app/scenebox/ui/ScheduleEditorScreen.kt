@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.scenebox.core.CpuPolicy
+import app.scenebox.core.RecipeStore
 
 /**
  * 逐项自定义调度：每个可调项一个独立控件，配好后一次应用。
@@ -46,6 +48,10 @@ fun ScheduleEditorScreen(
     policies: List<CpuPolicy>,
     governors: List<String>,
     currentGovernor: String,
+    recipes: List<RecipeStore.Recipe>,
+    onSaveRecipe: (String, String) -> Unit,
+    onApplyRecipe: (String) -> Unit,
+    onDeleteRecipe: (String) -> Unit,
     message: String,
     busy: Boolean,
     onBack: () -> Unit,
@@ -62,6 +68,8 @@ fun ScheduleEditorScreen(
     var boostOn by remember { mutableStateOf<Boolean?>(null) }
     var limitsOff by remember { mutableStateOf<Boolean?>(null) }
     var advanced by remember { mutableStateOf("") }
+    var showSaveDialog by remember { mutableStateOf(false) }
+    var recipeName by remember { mutableStateOf("") }
 
     fun buildPatch(): Pair<List<Pair<String, String>>, String> {
         val patch = mutableListOf<Pair<String, String>>()
@@ -125,6 +133,33 @@ fun ScheduleEditorScreen(
             }
         }
         return patch to notes.joinToString("、")
+    }
+
+    if (showSaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveDialog = false },
+            title = { Text("保存配方", fontSize = 15.sp) },
+            text = {
+                OutlinedTextField(
+                    value = recipeName,
+                    onValueChange = { recipeName = it.take(16) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("例如 我的均衡", fontSize = 11.sp) },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val (p, _) = buildPatch()
+                    if (recipeName.isNotBlank() && p.isNotEmpty()) {
+                        onSaveRecipe(recipeName.trim(), RecipeStore.encode(p))
+                    }
+                    showSaveDialog = false
+                    recipeName = ""
+                }) { Text("保存") }
+            },
+            dismissButton = { TextButton(onClick = { showSaveDialog = false }) { Text("取消") } },
+        )
     }
 
     Column(
@@ -287,6 +322,37 @@ fun ScheduleEditorScreen(
                 placeholder = { Text("/proc/sys/walt/sched_boost=0", fontSize = 10.sp) },
                 textStyle = MaterialTheme.typography.bodySmall,
             )
+        }
+
+        EditorCard("我的配方", "把当前这几项存下来，以后一键套用；也能给「按应用自动切换」引用") {
+            if (recipes.isEmpty()) {
+                Text("还没有保存的配方", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                recipes.chunked(2).forEach { pair ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        for (recipe in pair) {
+                            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(onClick = { onApplyRecipe(recipe.name) }) {
+                                    Text(recipe.name, fontSize = 11.sp, maxLines = 1)
+                                }
+                                Text(
+                                    "✕",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.clickable { onDeleteRecipe(recipe.name) },
+                                )
+                            }
+                        }
+                        if (pair.size == 1) Box(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+            TextButton(onClick = { showSaveDialog = true }) {
+                Text("＋ 保存当前设置为配方", fontSize = 12.sp)
+            }
         }
 
         val (patch, summary) = buildPatch()
