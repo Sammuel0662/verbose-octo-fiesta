@@ -604,22 +604,7 @@ private fun Root() {
                 logVersion++
             }
         },
-        customText = customText,
-        customBusy = customBusy,
-        customMessage = customMessage,
-        onCustomTextChange = { customText = it },
         onOpenSchedule = { showSchedule = true },
-        onDeployCustom = {
-            customBusy = true
-            customMessage = "部署中…"
-            scope.launch {
-                val result = withContext(Dispatchers.IO) { deployCustomPatch(customText, fingerprint) }
-                customMessage = result
-                customBusy = false
-                ActionLog.append(context, "自定义", customText.replace("\n", " / ") + " → " + result.take(60))
-                logVersion++
-            }
-        },
         onStartSample = { startSampling() },
         onRefreshStatus = {
             val fpNow = fingerprint

@@ -80,12 +80,7 @@ fun HomeScreen(
     logLines: List<String>,
     onRefreshLog: () -> Unit,
     onClearLog: () -> Unit,
-    customText: String,
-    customBusy: Boolean,
-    customMessage: String,
-    onCustomTextChange: (String) -> Unit,
     onOpenSchedule: () -> Unit,
-    onDeployCustom: () -> Unit,
     sampling: Boolean,
     sampleCount: Int,
     sampleFps: List<Int>,
@@ -158,57 +153,6 @@ fun HomeScreen(
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-
-            Card(title = "自定义参数（文本）") {
-                Text(
-                    "一行一条，只写你想改的那一项就行",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    "上限 = CPU 最高频率，越低越省电（100% 就是满频）\n" +
-                        "下限 = CPU 最低频率，越高越跟手但更耗电\n" +
-                        "governor = 调度器：schedutil 均衡 / performance 激进 / powersave 省电\n" +
-                        "关限制器 = 解除系统温控与频率限制，风险高",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SmallButton("省电50%", true, Modifier.weight(1f)) {
-                        onCustomTextChange("上限 50%\ngovernor schedutil")
-                    }
-                    SmallButton("均衡80%", true, Modifier.weight(1f)) {
-                        onCustomTextChange("上限 80%\ngovernor schedutil")
-                    }
-                    SmallButton("性能100%", true, Modifier.weight(1f)) {
-                        onCustomTextChange("上限 100%\ngovernor schedutil")
-                    }
-                    SmallButton("关限制器", true, Modifier.weight(1f)) {
-                        onCustomTextChange("上限 100%\n关限制器")
-                    }
-                }
-                OutlinedTextField(
-                    value = customText,
-                    onValueChange = onCustomTextChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = {
-                        Text("例如：上限 80%", fontSize = 11.sp)
-                    },
-                    textStyle = MaterialTheme.typography.bodySmall,
-                    minLines = 3,
-                    maxLines = 6,
-                )
-                Button(
-                    onClick = onDeployCustom,
-                    enabled = !customBusy && customText.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(if (customBusy) "部署中…" else "一键部署", fontSize = 13.sp)
-                }
-                if (customMessage.isNotBlank()) {
-                    Text(customMessage, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
             }
 
             CleanupCard(
