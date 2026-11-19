@@ -36,6 +36,7 @@ import app.scenebox.core.SceneFiles
 import app.scenebox.core.SnapshotService
 import app.scenebox.core.FpsSampler
 import app.scenebox.core.LiveStatus
+import app.scenebox.core.PerfMonitor
 import app.scenebox.core.SceneState
 import app.scenebox.core.SysfsApply
 import app.scenebox.core.ProfileService
@@ -316,7 +317,9 @@ private fun Root() {
     LaunchedEffect(fingerprint) {
         val fpNow = fingerprint ?: return@LaunchedEffect
         while (true) {
-            liveStatus = withContext(Dispatchers.IO) { LiveStatus.read(context, fpNow).text() }
+            liveStatus = withContext(Dispatchers.IO) {
+                LiveStatus.read(context, fpNow).text() + "\n" + PerfMonitor.read(fpNow)
+            }
             kotlinx.coroutines.delay(3000)
         }
     }
@@ -531,7 +534,9 @@ private fun Root() {
             val fpNow = fingerprint
             if (fpNow != null) {
                 scope.launch {
-                    liveStatus = withContext(Dispatchers.IO) { LiveStatus.read(context, fpNow).text() }
+                    liveStatus = withContext(Dispatchers.IO) {
+                LiveStatus.read(context, fpNow).text() + "\n" + PerfMonitor.read(fpNow)
+            }
                 }
             }
         },
