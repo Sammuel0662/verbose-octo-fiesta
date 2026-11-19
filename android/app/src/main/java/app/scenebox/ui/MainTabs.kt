@@ -1,5 +1,6 @@
 package app.scenebox.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -62,18 +64,36 @@ fun MainTabs(
             }
         }
 
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+            contentAlignment = Alignment.Center,
         ) {
-            TabItem("◎", "调度", tab == 0, Modifier.weight(1f)) { onTabChange(0) }
-            TabItem("⌗", "节点", tab == 1, Modifier.weight(1f)) { onTabChange(1) }
-            TabItem("▤", "监测", tab == 2, Modifier.weight(1f)) { onTabChange(2) }
-            TabItem("⚙", "设置", tab == 3, Modifier.weight(1f)) { onTabChange(3) }
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(26.dp),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
+                ),
+                shadowElevation = 10.dp,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TabItem("◎", "调度", tab == 0, Modifier.weight(1f)) { onTabChange(0) }
+                    TabItem("⌗", "节点", tab == 1, Modifier.weight(1f)) { onTabChange(1) }
+                    TabItem("▤", "监测", tab == 2, Modifier.weight(1f)) { onTabChange(2) }
+                    TabItem("⚙", "设置", tab == 3, Modifier.weight(1f)) { onTabChange(3) }
+                }
+            }
         }
     }
 }
