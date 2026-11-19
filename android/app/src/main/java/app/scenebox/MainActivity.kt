@@ -22,7 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import app.scenebox.community.PlazaRepo
 import app.scenebox.core.Capability
+import app.scenebox.core.ActionLog
 import app.scenebox.core.CapabilityProbe
+import app.scenebox.core.DeviceInfoFull
+import app.scenebox.core.Diagnostics
 import app.scenebox.core.DeviceFingerprint
 import app.scenebox.core.ShizukuBridge
 import app.scenebox.sbox.ExportService
@@ -104,6 +107,11 @@ private fun Root() {
     var customText by remember { mutableStateOf("") }
     var customBusy by remember { mutableStateOf(false) }
     var customMessage by remember { mutableStateOf("") }
+    var deviceInfo by remember { mutableStateOf(listOf<Pair<String, String>>()) }
+    var checks by remember { mutableStateOf(listOf<Diagnostics.Check>()) }
+    var diagBusy by remember { mutableStateOf(false) }
+    var logLines by remember { mutableStateOf(listOf<String>()) }
+    var logVersion by remember { mutableStateOf(0) }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -143,6 +151,8 @@ private fun Root() {
             else SnapshotService.restore(context, SuShell, label)
         }
         snapshotMessage = result.message
+        ActionLog.append(context, if (save) "快照保存" else "快照恢复", "$label → ${result.message.take(50)}")
+        logVersion++
     }
 
     suspend fun runImport(bundle: SboxBundle) {
@@ -294,6 +304,15 @@ private fun Root() {
     }
 
     // 实时状态：每 3 秒刷新一次频率/温度，便于观察应用方案前后的变化
+    LaunchedEffect(logVersion) {
+        logLines = withContext(Dispatchers.IO) { ActionLog.recent(context, 12) }
+    }
+
+    LaunchedEffect(Unit) {
+        val info = withContext(Dispatchers.IO) { DeviceInfoFull.collect(context) }
+        deviceInfo = info.lines()
+    }
+
     LaunchedEffect(fingerprint) {
         val fpNow = fingerprint ?: return@LaunchedEffect
         while (true) {
@@ -392,6 +411,8 @@ private fun Root() {
                     }
                     plazaApplying = false
                     plazaMessage = message
+                    ActionLog.append(context, "广场", "${item.name} → ${message.take(50)}")
+                    logVersion++
                 }
             },
             onDownload = { item ->
@@ -467,6 +488,29 @@ private fun Root() {
         sampleCount = sampleCount,
         sampleFps = sampleFps,
         sampleSummary = sampleSummary,
+        deviceInfo = deviceInfo,
+        checks = checks,
+        diagBusy = diagBusy,
+        onRunDiagnostics = {
+            diagBusy = true
+            scope.launch {
+                val fpNow = fingerprint
+                checks = withContext(Dispatchers.IO) {
+                    Diagnostics.run(context, fpNow, capability)
+                }
+                diagBusy = false
+                ActionLog.append(context, "检测", "运行环境自检 ${checks.count { it.ok }}/${checks.size} 通过")
+                logVersion++
+            }
+        },
+        logLines = logLines,
+        onRefreshLog = { logVersion++ },
+        onClearLog = {
+            scope.launch {
+                withContext(Dispatchers.IO) { ActionLog.clear(context) }
+                logVersion++
+            }
+        },
         customText = customText,
         customBusy = customBusy,
         customMessage = customMessage,
@@ -475,8 +519,11 @@ private fun Root() {
             customBusy = true
             customMessage = "部署中…"
             scope.launch {
-                customMessage = withContext(Dispatchers.IO) { deployCustomPatch(customText, fingerprint) }
+                val result = withContext(Dispatchers.IO) { deployCustomPatch(customText, fingerprint) }
+                customMessage = result
                 customBusy = false
+                ActionLog.append(context, "自定义", customText.replace("\n", " / ") + " → " + result.take(60))
+                logVersion++
             }
         },
         onStartSample = { startSampling() },

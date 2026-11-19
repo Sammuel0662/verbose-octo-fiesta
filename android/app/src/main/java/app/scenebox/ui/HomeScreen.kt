@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.scenebox.core.Capability
 import app.scenebox.core.DeviceFingerprint
+import app.scenebox.core.Diagnostics
 import app.scenebox.core.Tier
 import app.scenebox.sbox.SboxStore
 import java.io.File
@@ -72,6 +73,13 @@ fun HomeScreen(
     onCleanup: (String) -> Unit,
     liveStatus: String,
     onRefreshStatus: () -> Unit,
+    deviceInfo: List<Pair<String, String>>,
+    checks: List<Diagnostics.Check>,
+    diagBusy: Boolean,
+    onRunDiagnostics: () -> Unit,
+    logLines: List<String>,
+    onRefreshLog: () -> Unit,
+    onClearLog: () -> Unit,
     customText: String,
     customBusy: Boolean,
     customMessage: String,
@@ -150,15 +158,39 @@ fun HomeScreen(
             )
 
             Card(title = "自定义参数") {
+                Text(
+                    "一行一条，只写你想改的那一项就行",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "上限 = CPU 最高频率，越低越省电（100% 就是满频）\n" +
+                        "下限 = CPU 最低频率，越高越跟手但更耗电\n" +
+                        "governor = 调度器：schedutil 均衡 / performance 激进 / powersave 省电\n" +
+                        "关限制器 = 解除系统温控与频率限制，风险高",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    SmallButton("省电50%", true, Modifier.weight(1f)) {
+                        onCustomTextChange("上限 50%\ngovernor schedutil")
+                    }
+                    SmallButton("均衡80%", true, Modifier.weight(1f)) {
+                        onCustomTextChange("上限 80%\ngovernor schedutil")
+                    }
+                    SmallButton("性能100%", true, Modifier.weight(1f)) {
+                        onCustomTextChange("上限 100%\ngovernor schedutil")
+                    }
+                    SmallButton("关限制器", true, Modifier.weight(1f)) {
+                        onCustomTextChange("上限 100%\n关限制器")
+                    }
+                }
                 OutlinedTextField(
                     value = customText,
                     onValueChange = onCustomTextChange,
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
-                        Text(
-                            "每行一条，例如：\n上限 80%\n上限 p0 60%\n下限 30%\ngovernor schedutil\n关限制器",
-                            fontSize = 11.sp,
-                        )
+                        Text("例如：上限 80%", fontSize = 11.sp)
                     },
                     textStyle = MaterialTheme.typography.bodySmall,
                     minLines = 3,
@@ -191,7 +223,60 @@ fun HomeScreen(
                 onAction = { pendingCleanup = it },
             )
 
-            DeviceCard(fp)
+            DeviceCard(fp, deviceInfo)
+
+            Card(title = "环境检测") {
+                Button(
+                    onClick = onRunDiagnostics,
+                    enabled = !diagBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (diagBusy) "检测中…" else "运行完整检测", fontSize = 13.sp)
+                }
+                if (checks.isEmpty()) {
+                    Text(
+                        "检查 root、Shizuku、Scene 状态、频点表、可写性、温控与 GPU 节点",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    for (check in checks) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                if (check.ok) "✓" else "✗",
+                                fontSize = 12.sp,
+                                color = if (check.ok) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.error,
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(check.name, fontSize = 12.sp)
+                                Text(
+                                    check.detail,
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Card(title = "操作日志") {
+                if (logLines.isEmpty()) {
+                    Text("还没有操作记录", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    for (line in logLines) {
+                        Text(line, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onRefreshLog) { Text("刷新", fontSize = 12.sp) }
+                    TextButton(onClick = onClearLog) { Text("清空日志", fontSize = 12.sp) }
+                }
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -534,7 +619,7 @@ private fun SmallButton(
 }
 
 @Composable
-private fun DeviceCard(fp: DeviceFingerprint?) {
+private fun DeviceCard(fp: DeviceFingerprint?, extra: List<Pair<String, String>> = emptyList()) {
     if (fp == null) return
     Card(title = "本机") {
         Row(
@@ -547,6 +632,15 @@ private fun DeviceCard(fp: DeviceFingerprint?) {
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        for ((key, value) in extra) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(key, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, fontSize = 11.sp, maxLines = 1)
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             for (policy in fp.policies) {
