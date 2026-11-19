@@ -146,7 +146,7 @@ fun HomeScreen(
 
             Card(title = "自定义调度") {
                 Button(onClick = onOpenSchedule, modifier = Modifier.fillMaxWidth()) {
-                    Text("逐项自定义（推荐）", fontSize = 13.sp)
+                    Text("逐项自定义", fontSize = 13.sp)
                 }
                 Text(
                     "每项一个控件：调度器、每簇上下限、GPU、clamp、core_ctl、开关、任意节点",

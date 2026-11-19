@@ -2,7 +2,9 @@ package app.scenebox.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,6 +44,7 @@ import app.scenebox.core.CpuPolicy
 fun ScheduleEditorScreen(
     policies: List<CpuPolicy>,
     governors: List<String>,
+    currentGovernor: String,
     message: String,
     busy: Boolean,
     onBack: () -> Unit,
@@ -141,11 +145,30 @@ fun ScheduleEditorScreen(
             Text("", fontSize = 12.sp)
         }
 
-        EditorCard("调度器（governor）", "决定用哪套调频算法；schedutil 均衡，performance 激进，powersave 省电") {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (g in governors.take(5)) {
-                    SelectChip(g, governor == g) { governor = if (governor == g) null else g }
+        EditorCard("调度器（governor）", "决定用哪套调频算法。当前生效：${currentGovernor.ifBlank { "未知" }}") {
+            val options = governors.ifEmpty { listOf("walt", "schedutil") }
+            options.chunked(2).forEach { pair ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    for (g in pair) {
+                        GovernorTile(
+                            name = g,
+                            desc = governorDesc(g),
+                            selected = governor == g,
+                            modifier = Modifier.weight(1f),
+                        ) { governor = if (governor == g) null else g }
+                    }
+                    if (pair.size == 1) Box(modifier = Modifier.weight(1f))
                 }
+            }
+            if (governor != null) {
+                Text(
+                    "已选 $governor，再点一次取消",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
 
@@ -341,6 +364,58 @@ private fun EditorCard(title: String, hint: String, content: @Composable ColumnS
             Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Text(hint, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             content()
+        }
+    }
+}
+
+private fun governorDesc(name: String): String = when (name.lowercase()) {
+    "walt" -> "高通默认，响应快"
+    "schedutil" -> "主线通用，功耗稳"
+    "performance" -> "锁高频，最激进"
+    "powersave" -> "锁最低频，最省电"
+    "conservative" -> "渐进升频，偏保守"
+    "interactive" -> "老式交互调频"
+    else -> "可用调度器"
+}
+
+@Composable
+private fun GovernorTile(
+    name: String,
+    desc: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        color = if (selected) accent.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (selected) accent.copy(alpha = 0.7f) else Color.Transparent,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    name,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (selected) accent else MaterialTheme.colorScheme.onSurface,
+                )
+                if (selected) {
+                    Text("  ✓", fontSize = 12.sp, color = accent)
+                }
+            }
+            Text(
+                desc,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

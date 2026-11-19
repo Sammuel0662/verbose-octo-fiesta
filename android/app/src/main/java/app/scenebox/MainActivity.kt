@@ -131,6 +131,7 @@ private fun Root() {
     var scheduleMessage by remember { mutableStateOf("") }
     var scheduleBusy by remember { mutableStateOf(false) }
     var governors by remember { mutableStateOf(listOf<String>()) }
+    var currentGovernor by remember { mutableStateOf("") }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -363,6 +364,9 @@ private fun Root() {
     }
 
     LaunchedEffect(Unit) {
+        currentGovernor = withContext(Dispatchers.IO) {
+            SuShell.exec("/sys/devices/system/cpu/cpufreq/policy0/scaling_governor 2>/dev/null", 8L).text().trim()
+        }
         governors = withContext(Dispatchers.IO) {
             SuShell.exec(
                 "cat /sys/devices/system/cpu/cpufreq/policy0/scaling_available_governors 2>/dev/null",
@@ -432,6 +436,7 @@ private fun Root() {
         ScheduleEditorScreen(
             policies = fingerprint?.policies ?: emptyList(),
             governors = governors,
+            currentGovernor = currentGovernor,
             message = scheduleMessage,
             busy = scheduleBusy,
             onBack = { showSchedule = false },
