@@ -306,7 +306,7 @@ private fun Root() {
             }
             val maxFreqs = withContext(Dispatchers.IO) {
                 SuShell.exec(
-                    "for p in 0 2 5 7; do cat /sys/devices/system/cpu/cpufreq/policy$p/scaling_max_freq 2>/dev/null; done",
+                    "for p in 0 2 5 7; do cat /sys/devices/system/cpu/cpufreq/policy\$p/scaling_max_freq 2>/dev/null; done",
                     8L,
                 ).text().trim().lines().joinToString("/")
             }
