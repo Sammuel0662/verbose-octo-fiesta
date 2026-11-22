@@ -16,8 +16,8 @@ android {
         applicationId = "app.scenebox"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.4.0"
+        versionCode = 5
+        versionName = "0.4.5"
     }
 
     signingConfigs {

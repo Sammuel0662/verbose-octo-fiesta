@@ -25,7 +25,7 @@ import java.util.Locale
 object SboxBuilder {
     const val FORMAT = "sbox"
     const val FORMAT_VERSION = 1
-    const val GENERATOR = "SceneBox 0.4.0 (android)"
+    const val GENERATOR = "SceneBox 0.4.5 (android)"
 
     private val pretty = Json { prettyPrint = true; prettyPrintIndent = "  " }
 
