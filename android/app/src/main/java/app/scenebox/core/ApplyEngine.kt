@@ -1,5 +1,7 @@
 package app.scenebox.core
 
+import app.scenebox.sbox.ImportService
+
 /**
  * 统一的应用入口：根据 Scene 是否在自动调度，选择写入方式。
  *

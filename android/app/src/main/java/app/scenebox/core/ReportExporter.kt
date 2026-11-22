@@ -52,6 +52,11 @@ object ReportExporter {
             textSize = 30f
             isAntiAlias = true
         }
+        val accent = Paint().apply {
+            color = Color.parseColor("#7CE38B")
+            textSize = 28f
+            isAntiAlias = true
+        }
         val muted = Paint().apply {
             color = Color.parseColor("#9AA5AD")
             textSize = 26f
@@ -120,7 +125,7 @@ object ReportExporter {
             c.drawText(name, 60f, y, muted)
             c.drawText(va, 380f, y, text)
             c.drawText(vb, 640f, y, text)
-            c.drawText(delta, 880f, y, title.copy().apply { textSize = 28f })
+            c.drawText(delta, 880f, y, accent)
             y += 48f
         }
         c.drawText("指标", 60f, y, muted)
