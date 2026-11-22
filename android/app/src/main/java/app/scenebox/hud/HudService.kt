@@ -22,6 +22,7 @@ import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
 import app.scenebox.MainActivity
+import app.scenebox.core.ApplyEngine
 import app.scenebox.core.AutoSwitch
 import app.scenebox.core.DeviceFingerprint
 import app.scenebox.core.DisplayControl
@@ -275,7 +276,7 @@ class HudService : Service() {
     private fun applyPatchAsync(patch: List<Pair<String, String>>) {
         Thread {
             val fp = DeviceFingerprint.collect()
-            SysfsApply.apply(patch, fp)
+            ApplyEngine.apply(patch, fp)
         }.start()
     }
 
@@ -305,6 +306,23 @@ class HudService : Service() {
     }
 
     /** 每 4 秒看一眼前台应用，命中规则就套用对应配方 */
+    private var lastCharging: Boolean? = null
+    private var gpuHotCount = 0
+
+    private fun prefs() = getSharedPreferences("scenebox", MODE_PRIVATE)
+
+    private fun batteryCharging(): Boolean = runCatching {
+        val intent = registerReceiver(null, android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
+        val status = intent?.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1) ?: -1
+        status == android.os.BatteryManager.BATTERY_STATUS_CHARGING ||
+            status == android.os.BatteryManager.BATTERY_STATUS_FULL
+    }.getOrDefault(false)
+
+    private fun gpuBusy(): Int = runCatching {
+        SuShell.exec("cat /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage 2>/dev/null", 6L)
+            .text().trim().filter { it.isDigit() }.toIntOrNull() ?: 0
+    }.getOrDefault(0)
+
     private val autoTask = object : Runnable {
         override fun run() {
             runCatching {
@@ -324,7 +342,7 @@ class HudService : Service() {
                                 val patch = RecipeStore.decode(body)
                                 if (patch.isNotEmpty()) {
                                     val fp = DeviceFingerprint.collect()
-                                    SysfsApply.apply(patch, fp)
+                                    ApplyEngine.apply(patch, fp)
                                     modeName = recipeName
                                     main.post { render() }
                                 }
@@ -333,6 +351,42 @@ class HudService : Service() {
                     }
                 }
             }
+            // 充电场景：插电进性能，拔电回均衡
+            runCatching {
+                if (prefs().getBoolean("auto_charge", false)) {
+                    val charging = batteryCharging()
+                    if (lastCharging != null && lastCharging != charging) {
+                        val target = if (charging) "性能" else "均衡"
+                        modeName = target
+                        presets[target]?.let { p ->
+                            val fp = DeviceFingerprint.collect()
+                            ApplyEngine.apply(p, fp)
+                        }
+                        main.post { render() }
+                    }
+                    lastCharging = charging
+                }
+            }
+
+            // 游戏识别：GPU 连续 3 次 > 60% 视为在游戏
+            runCatching {
+                if (prefs().getBoolean("auto_game", false)) {
+                    if (gpuBusy() > 60) {
+                        gpuHotCount++
+                        if (gpuHotCount == 3 && modeName != "性能") {
+                            modeName = "性能"
+                            presets["性能"]?.let { p ->
+                                val fp = DeviceFingerprint.collect()
+                                ApplyEngine.apply(p, fp)
+                            }
+                            main.post { render() }
+                        }
+                    } else {
+                        gpuHotCount = 0
+                    }
+                }
+            }
+
             main.postDelayed(this, 4000)
         }
     }

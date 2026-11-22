@@ -31,6 +31,7 @@ import app.scenebox.core.DisplayControl
 import app.scenebox.core.AppGovernance
 import app.scenebox.core.AutoSwitch
 import app.scenebox.core.RecipeStore
+import app.scenebox.core.ReportExporter
 import app.scenebox.core.SampleStore
 import app.scenebox.hud.HudService
 import app.scenebox.core.DeviceFingerprint
@@ -56,6 +57,7 @@ import app.scenebox.ui.GuideScreen
 import app.scenebox.ui.HomeScreen
 import app.scenebox.ui.MainTabs
 import app.scenebox.ui.MonitorScreen
+import app.scenebox.ui.ReportScreen
 import app.scenebox.ui.AppsScreen
 import app.scenebox.ui.NodeScreen
 import app.scenebox.ui.ScheduleEditorScreen
@@ -157,6 +159,13 @@ private fun Root() {
     var appsLoading by remember { mutableStateOf(false) }
     var appsMessage by remember { mutableStateOf("") }
     var installedApps by remember { mutableStateOf(listOf<String>()) }
+    var autoCharge by remember { mutableStateOf(false) }
+    var autoGame by remember { mutableStateOf(false) }
+    var abA by remember { mutableStateOf<ReportExporter.Sample?>(null) }
+    var abB by remember { mutableStateOf<ReportExporter.Sample?>(null) }
+    var showReport by remember { mutableStateOf(false) }
+    var reportMessage by remember { mutableStateOf("") }
+    var abBusy by remember { mutableStateOf(false) }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -301,6 +310,56 @@ private fun Root() {
         }
     }
 
+    fun runAbSample(tag: String) {
+        val fpNow = fingerprint ?: return
+        abBusy = true
+        scope.launch {
+            val pkg = withContext(Dispatchers.IO) { FpsSampler.foregroundPackage() }
+            if (pkg == null) {
+                abBusy = false
+                reportMessage = "读不到前台应用"
+                return@launch
+            }
+            val fpsList = mutableListOf<Int>()
+            val temps = mutableListOf<Float>()
+            var lastFrames = withContext(Dispatchers.IO) { FpsSampler.totalFrames(pkg) }
+            repeat(30) {
+                kotlinx.coroutines.delay(1000)
+                val frames = withContext(Dispatchers.IO) { FpsSampler.totalFrames(pkg) }
+                fpsList += if (lastFrames >= 0 && frames >= lastFrames) (frames - lastFrames).toInt() else 0
+                lastFrames = frames
+                temps += FpsSampler.temperature(context)
+            }
+            val valid = fpsList.filter { it in 1..240 }
+            val low = withContext(Dispatchers.IO) { FpsSampler.onePercentLow(pkg) }
+            val stats = withContext(Dispatchers.IO) { FpsSampler.frameStats(pkg) }
+            val governor = withContext(Dispatchers.IO) {
+                SuShell.exec("cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor 2>/dev/null", 8L).text().trim()
+            }
+            val freqs = withContext(Dispatchers.IO) {
+                fpNow.policies.joinToString("/") { policy ->
+                    SuShell.exec("cat /sys/devices/system/cpu/cpufreq/${policy.name}/scaling_max_freq 2>/dev/null", 6L)
+                        .text().trim()
+                }
+            }
+            val sample = ReportExporter.Sample(
+                label = tag,
+                fps = fpsList,
+                avg = if (valid.isEmpty()) 0 else valid.average().toInt(),
+                low = low,
+                jank = stats?.jankPercent ?: 0f,
+                maxTemp = temps.maxOrNull() ?: 0f,
+                governor = governor.ifBlank { "?" },
+                maxFreqs = freqs,
+            )
+            if (tag == "A") abA = sample else abB = sample
+            reportMessage = "$tag 采样完成：均值 ${sample.avg} / 1% low ${sample.low} / 最高温 ${sample.maxTemp}℃"
+            abBusy = false
+            ActionLog.append(context, "对比采样", reportMessage)
+            logVersion++
+        }
+    }
+
     fun startSampling() {
         sampling = true
         sampleCount = 0
@@ -389,6 +448,9 @@ private fun Root() {
     }
 
     LaunchedEffect(Unit) {
+        val pref = context.getSharedPreferences("scenebox", android.content.Context.MODE_PRIVATE)
+        autoCharge = pref.getBoolean("auto_charge", false)
+        autoGame = pref.getBoolean("auto_game", false)
         installedApps = withContext(Dispatchers.IO) {
             runCatching { AppGovernance.listUserApps().map { it.pkg } }.getOrDefault(emptyList())
         }
@@ -514,6 +576,31 @@ private fun Root() {
                 }
             },
             onBack = { showApps = false },
+        )
+        return
+    }
+
+    if (showReport) {
+        ReportScreen(
+            device = fingerprint?.model ?: "未知机型",
+            a = abA,
+            b = abB,
+            message = reportMessage,
+            onExport = {
+                val a = abA
+                val b = abB
+                if (a != null && b != null) {
+                    scope.launch {
+                        val file = withContext(Dispatchers.IO) {
+                            ReportExporter.export(context, a, b, fingerprint?.model ?: "")
+                        }
+                        reportMessage = if (file != null) "已保存到相册：${file.name}" else "导出失败"
+                        ActionLog.append(context, "报告", reportMessage)
+                        logVersion++
+                    }
+                }
+            },
+            onBack = { showReport = false },
         )
         return
     }
@@ -825,6 +912,11 @@ private fun Root() {
                 sampleFps = sampleFps,
                 sampleSummary = sampleSummary,
                 onStartSample = { startSampling() },
+                abBusy = abBusy,
+                abMessage = reportMessage,
+                onSampleA = { runAbSample("A") },
+                onSampleB = { runAbSample("B") },
+                onOpenReport = { showReport = true },
                 checks = checks,
                 diagBusy = diagBusy,
                 onRunDiagnostics = {
@@ -861,6 +953,18 @@ private fun Root() {
                 },
                 installedApps = installedApps,
                 recipeNames = recipes.map { it.name },
+                autoCharge = autoCharge,
+                autoGame = autoGame,
+                onToggleCharge = { on ->
+                    autoCharge = on
+                    context.getSharedPreferences("scenebox", android.content.Context.MODE_PRIVATE)
+                        .edit().putBoolean("auto_charge", on).apply()
+                },
+                onToggleGame = { on ->
+                    autoGame = on
+                    context.getSharedPreferences("scenebox", android.content.Context.MODE_PRIVATE)
+                        .edit().putBoolean("auto_game", on).apply()
+                },
                 onAddRule = { pkg, recipe ->
                     val line = "$pkg=$recipe\n"
                     val merged = (autoRules + line).trim()

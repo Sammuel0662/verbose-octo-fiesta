@@ -44,6 +44,10 @@ fun SettingsScreen(
     onSaveAutoRules: (String) -> Unit,
     installedApps: List<String>,
     recipeNames: List<String>,
+    autoCharge: Boolean,
+    autoGame: Boolean,
+    onToggleCharge: (Boolean) -> Unit,
+    onToggleGame: (Boolean) -> Unit,
     onAddRule: (String, String) -> Unit,
     onOpenApps: () -> Unit,
     hudOn: Boolean,
@@ -145,6 +149,22 @@ fun SettingsScreen(
                     modifier = Modifier.weight(1f),
                     enabled = installedApps.isNotEmpty(),
                 ) { Text("＋ 添加规则", fontSize = 12.sp) }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("插电自动切性能 / 拔电回均衡", fontSize = 11.sp)
+                androidx.compose.material3.Switch(checked = autoCharge, onCheckedChange = onToggleCharge)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("游戏自动识别（GPU 负载高时切性能）", fontSize = 11.sp)
+                androidx.compose.material3.Switch(checked = autoGame, onCheckedChange = onToggleGame)
             }
             if (showAddRule) {
                 AddRuleDialog(

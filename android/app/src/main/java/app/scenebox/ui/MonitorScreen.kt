@@ -40,6 +40,11 @@ fun MonitorScreen(
     sampleFps: List<Int>,
     sampleSummary: String,
     onStartSample: () -> Unit,
+    abBusy: Boolean,
+    abMessage: String,
+    onSampleA: () -> Unit,
+    onSampleB: () -> Unit,
+    onOpenReport: () -> Unit,
     checks: List<Diagnostics.Check>,
     diagBusy: Boolean,
     onRunDiagnostics: () -> Unit,
@@ -114,6 +119,34 @@ fun MonitorScreen(
             }
             if (sampleSummary.isNotBlank()) {
                 Text(sampleSummary, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        MonitorCard(title = "A/B 对比") {
+            Text(
+                "先在当前方案下点「对比 A」，调参后再点「对比 B」，然后生成报告（可导出成图）。",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onSampleA,
+                    enabled = !abBusy,
+                    modifier = Modifier.weight(1f),
+                ) { Text("对比 A", fontSize = 12.sp) }
+                Button(
+                    onClick = onSampleB,
+                    enabled = !abBusy,
+                    modifier = Modifier.weight(1f),
+                ) { Text("对比 B", fontSize = 12.sp) }
+            }
+            Button(
+                onClick = onOpenReport,
+                enabled = !abBusy,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("生成对比报告", fontSize = 12.sp) }
+            if (abMessage.isNotBlank()) {
+                Text(abMessage, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
