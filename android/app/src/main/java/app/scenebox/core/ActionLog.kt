@@ -23,6 +23,7 @@ object ActionLog {
             f.parentFile?.mkdirs()
             val line = "${stamp.format(Date())} [$tag] ${message.replace("\n", " ")}\n"
             f.appendText(line)
+            LocalStats.bump(context, tag)
         } catch (_: Throwable) {
             // 日志失败不能影响主流程
         }
