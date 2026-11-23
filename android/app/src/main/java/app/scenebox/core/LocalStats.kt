@@ -31,7 +31,7 @@ object LocalStats {
 
         val days = p.getString("days", "").orEmpty().split(',').filter { it.isNotBlank() }.toMutableSet()
         days += today()
-        editor.putString("days", days.takeLast(400).joinToString(","))
+        editor.putString("days", days.sorted().takeLast(400).joinToString(","))
         editor.apply()
     }
 
