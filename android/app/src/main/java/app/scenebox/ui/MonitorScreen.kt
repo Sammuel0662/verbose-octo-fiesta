@@ -45,6 +45,11 @@ fun MonitorScreen(
     onSampleA: () -> Unit,
     onSampleB: () -> Unit,
     onOpenReport: () -> Unit,
+    statsText: String,
+    statsConfigured: Boolean,
+    statsOptIn: Boolean,
+    onRefreshStats: () -> Unit,
+    onToggleStats: (Boolean) -> Unit,
     checks: List<Diagnostics.Check>,
     diagBusy: Boolean,
     onRunDiagnostics: () -> Unit,
@@ -147,6 +152,36 @@ fun MonitorScreen(
             ) { Text("生成对比报告", fontSize = 12.sp) }
             if (abMessage.isNotBlank()) {
                 Text(abMessage, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        MonitorCard(title = "用户统计") {
+            if (!statsConfigured) {
+                Text(
+                    "未配置统计服务。按 docs/stats-worker.md 部署一个 Cloudflare Worker，把地址填进 StatsClient.ENDPOINT 即可。",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    if (statsText.isBlank()) "点下面的按钮获取" else statsText,
+                    fontSize = 12.sp,
+                    lineHeight = 20.sp,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                ) {
+                    Text("匿名统计（默认关闭）", fontSize = 11.sp)
+                    androidx.compose.material3.Switch(checked = statsOptIn, onCheckedChange = onToggleStats)
+                }
+                TextButton(onClick = onRefreshStats) { Text("刷新统计", fontSize = 12.sp) }
+                Text(
+                    "只上报一个 16 位匿名 ID 与版本号，不含机型/账号/位置；在线 = 5 分钟内有心跳的设备数。",
+                    fontSize = 9.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
 

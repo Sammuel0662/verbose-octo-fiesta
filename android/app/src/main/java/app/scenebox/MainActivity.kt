@@ -33,6 +33,7 @@ import app.scenebox.core.AutoSwitch
 import app.scenebox.core.RecipeStore
 import app.scenebox.core.ReportExporter
 import app.scenebox.core.SampleStore
+import app.scenebox.core.StatsClient
 import app.scenebox.hud.HudService
 import app.scenebox.core.DeviceFingerprint
 import app.scenebox.core.ShizukuBridge
@@ -166,6 +167,8 @@ private fun Root() {
     var showReport by remember { mutableStateOf(false) }
     var reportMessage by remember { mutableStateOf("") }
     var abBusy by remember { mutableStateOf(false) }
+    var statsText by remember { mutableStateOf("") }
+    var statsOptIn by remember { mutableStateOf(false) }
     var noticeAccepted by remember { mutableStateOf(false) }
 
     fun probe(tryRoot: Boolean) {
@@ -257,6 +260,10 @@ private fun Root() {
     var autoApplied by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        statsOptIn = StatsClient.enabled(context)
+        if (StatsClient.enabled(context)) {
+            withContext(Dispatchers.IO) { StatsClient.heartbeat(context) }
+        }
         probe(prefs.getBoolean("try_root", false))
         refreshFiles()
     }
@@ -917,6 +924,30 @@ private fun Root() {
                 onSampleA = { runAbSample("A") },
                 onSampleB = { runAbSample("B") },
                 onOpenReport = { showReport = true },
+                statsText = statsText,
+                statsConfigured = StatsClient.configured(),
+                statsOptIn = statsOptIn,
+                onRefreshStats = {
+                    scope.launch {
+                        val stats = withContext(Dispatchers.IO) { StatsClient.fetch() }
+                        statsText = if (stats == null) {
+                            "获取失败（未配置或网络不通）"
+                        } else {
+                            "在线 ${stats.online} 人\n今日活跃 ${stats.dau} 人\n累计用户 ${stats.total} 人"
+                        }
+                    }
+                },
+                onToggleStats = { on ->
+                    statsOptIn = on
+                    StatsClient.setEnabled(context, on)
+                    if (on) {
+                        scope.launch {
+                            withContext(Dispatchers.IO) { StatsClient.heartbeat(context) }
+                        }
+                    }
+                    ActionLog.append(context, "统计", if (on) "开启匿名统计" else "关闭匿名统计")
+                    logVersion++
+                },
                 checks = checks,
                 diagBusy = diagBusy,
                 onRunDiagnostics = {
